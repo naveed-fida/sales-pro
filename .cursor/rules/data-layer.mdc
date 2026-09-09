@@ -1,0 +1,46 @@
+---
+description: IPC contract and Drizzle conventions for the main and shared layers
+globs: src/main/**/*.ts,src/shared/**/*.ts
+alwaysApply: false
+---
+
+# Data Layer
+
+## IPC goes through the shared contract
+
+The renderer has no Node and no filesystem access. Every main-process call
+crosses `contextBridge`, and the channel names and payload schemas live in
+`src/shared/ipc-contract.ts` as the single source of truth.
+
+- Never write a string-literal channel at a call site. Import the constant.
+- Validate every incoming payload in the handler with `.parse()` before it
+  reaches the database. The renderer is untrusted input.
+- Derive renderer-side types with `z.infer` from the same schema. Do not
+  redeclare the shape as an interface.
+
+```ts
+// BAD - literal channel, unvalidated body
+ipcMain.handle('customers:create', (_e, body) => db.insert(customers).values(body))
+
+// GOOD
+import { CHANNELS, createCustomerSchema } from '@shared/ipc-contract'
+
+ipcMain.handle(CHANNELS.customers.create, (_e, body) =>
+  db.insert(customers).values(createCustomerSchema.parse(body)).returning(),
+)
+```
+
+## Schema changes are generated, never hand-written
+
+Edit `src/main/db/schema.ts`, then run `npm run db:generate`. Never author or
+edit a file in `drizzle/` by hand - it is generated migration history, and
+hand edits desynchronise it from the schema snapshot.
+
+Migrations apply at app boot via the main-process migrator. `drizzle-kit` is
+only for generating them and for `npm run db:studio`.
+
+## Queries use the builder
+
+Use the Drizzle query builder, not raw SQL strings. Reach for the `sql`
+template helper only for expressions the builder cannot express, and never
+interpolate user input into it directly.

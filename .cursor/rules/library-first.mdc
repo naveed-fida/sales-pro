@@ -1,0 +1,45 @@
+---
+description: Library-first policy - use the installed stack instead of reimplementing it
+alwaysApply: true
+---
+
+# Library First
+
+This project picked its stack deliberately. Reimplementing something a dependency
+already provides is a defect, not a shortcut. Before writing any component,
+hook, or utility, check whether it already exists.
+
+| Need | Use | Never hand-write |
+|---|---|---|
+| UI primitive | `npx shadcn@latest add <name>` | dialog, select, dropdown, table, toast, tooltip |
+| Styling | Tailwind utility classes | CSS modules, styled-components, inline `style={{}}` |
+| Forms | `react-hook-form` + `zodResolver` | `useState` per field, manual validation, custom onChange wiring |
+| Validation and types | one `zod` schema in `src/shared`, types via `z.infer` | type guards, duplicated interfaces, ad-hoc runtime checks |
+| Common hooks | `usehooks-ts` | debounce, localStorage, click-outside, media-query, copy-to-clipboard |
+| Collection / object work | `lodash` | bespoke `reduce` chains for grouping, keying, deduping, deep cloning |
+| Database access | Drizzle query builder | raw SQL strings |
+
+## Import individual members, never a namespace
+
+```ts
+// BAD - pulls the whole library, defeats tree-shaking
+import _ from 'lodash'
+_.groupBy(rows, 'status')
+
+// GOOD
+import { groupBy } from 'lodash'
+groupBy(rows, 'status')
+```
+
+## Keep it DRY
+
+If the same logic appears twice, extract it. Shared validation belongs in
+`src/shared`, shared UI in `src/renderer/src/components`, shared hooks in
+`src/renderer/src/hooks`.
+
+## Escalation
+
+Native language features are fine for trivial work: `map`, `filter`, and
+`Object.entries` do not need lodash. But if a real requirement genuinely is not
+covered by the stack, say so explicitly and explain why before writing a bespoke
+implementation. Do not silently roll your own.

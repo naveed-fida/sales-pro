@@ -1,0 +1,48 @@
+---
+description: shadcn/ui component conventions for the renderer
+globs: src/renderer/**/*.tsx
+alwaysApply: false
+---
+
+# shadcn/ui Components
+
+## Resolution order
+
+1. Look in `src/renderer/src/components/ui/` - it may already be installed.
+2. Check the shadcn registry and run `npx shadcn@latest add <name>`.
+3. Only if neither covers it, build the component - and say why first.
+
+Writing a `Dialog`, `Select`, `Popover`, or `Table` by hand is not acceptable.
+These are in the registry, and hand-rolled versions lose the Radix
+accessibility behaviour (focus trapping, keyboard nav, ARIA wiring).
+
+## Compose, do not fork
+
+Treat `components/ui/` as generated code. To specialise a primitive, wrap it
+rather than editing it, so `shadcn` can still update the original.
+
+```tsx
+// GOOD - a wrapper in components/, composing the primitive
+import { Button } from '@/components/ui/button'
+
+export function SubmitButton({ pending, ...props }: SubmitButtonProps) {
+  return <Button type="submit" disabled={pending} {...props} />
+}
+```
+
+Editing `components/ui/` directly is fine only for project-wide token or
+variant changes that every consumer should inherit.
+
+## Class names and variants
+
+- Merge conditional classes with `cn()` from `@/lib/utils`, never template
+  strings, so later Tailwind utilities win conflicts predictably.
+- Express variants with `cva`, not branching ternaries on `className`.
+
+```tsx
+// BAD
+<div className={`p-4 ${isActive ? 'bg-accent' : ''}`} />
+
+// GOOD
+<div className={cn('p-4', isActive && 'bg-accent')} />
+```
