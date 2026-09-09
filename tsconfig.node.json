@@ -12,9 +12,8 @@
     "composite": true,
     "noEmit": true,
     "types": ["node", "electron-vite/node"],
-    "baseUrl": ".",
     "paths": {
-      "@shared/*": ["src/shared/*"]
+      "@shared/*": ["./src/shared/*"]
     }
   }
 }
