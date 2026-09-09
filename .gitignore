@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+.pnp/
+.pnp.js
+
+# Build output
+out/
+dist/
+release/
+*.tsbuildinfo
+
+# Caches
+.vite/
+.eslintcache
+coverage/
+
+# Local SQLite databases (the real one lives in the OS userData dir,
+# but keep strays out of the repo). Generated migrations in drizzle/ ARE tracked.
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+yarn-error.log*
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
