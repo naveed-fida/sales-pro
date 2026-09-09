@@ -5,7 +5,38 @@
   "description": "Sales Pro desktop application",
   "author": "Naveed Fida <naveedfida01@gmail.com>",
   "license": "UNLICENSED",
+  "main": "./out/main/index.js",
   "engines": {
     "node": ">=24.20.0 <25"
+  },
+  "scripts": {
+    "postinstall": "install-electron",
+    "dev": "node scripts/electron-vite.mjs dev",
+    "build": "npm run typecheck && electron-vite build",
+    "preview": "node scripts/electron-vite.mjs preview",
+    "typecheck": "npm run typecheck:node && npm run typecheck:web",
+    "typecheck:node": "tsc --noEmit -p tsconfig.node.json",
+    "typecheck:web": "tsc --noEmit -p tsconfig.web.json"
+  },
+  "dependencies": {
+    "@electron-toolkit/preload": "^3.0.2",
+    "@electron-toolkit/utils": "^4.0.0"
+  },
+  "devDependencies": {
+    "@electron-toolkit/tsconfig": "^2.0.0",
+    "@types/node": "^24.13.4",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^5.2.0",
+    "electron": "^44.3.0",
+    "electron-vite": "^5.0.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.3.6"
+  },
+  "allowScripts": {
+    "esbuild@0.25.12": true,
+    "esbuild@0.28.2": true
   }
 }
