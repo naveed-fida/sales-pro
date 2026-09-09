@@ -1,0 +1,40 @@
+---
+description: Ask the user to confirm UI results instead of trying to capture them
+alwaysApply: true
+---
+
+# Verifying UI
+
+When the thing to verify is visual - layout, styling, whether a window
+renders, whether a component looks right - ask the user to look and report
+back. Do not try to capture it.
+
+Specifically, do not:
+
+- run `screencapture`, `osascript`, or other screen-grab tooling
+- drive the app with browser automation to inspect the rendered result
+- load the renderer's dev server URL in a plain browser as a stand-in
+
+Those do not work here anyway. Screen capture needs assistive access that is
+not granted, and the renderer cannot run outside Electron because
+`window.electron` and `window.api` only exist behind the preload bridge.
+
+## What to do instead
+
+Verify what is machine-checkable, then hand the visual check over:
+
+1. Confirm `npm run typecheck` and `npm run build` pass, and that expected
+   assets are emitted.
+2. Start `npm run dev` and confirm it reaches a clean startup with no errors.
+3. Ask the user what they see, naming the specific thing in doubt.
+
+Ask a concrete question, not an open one:
+
+```
+BAD:  Let me know if it looks right.
+GOOD: Does the card render centred with the Geist font, and does the
+      button show a check icon to the left of its label?
+```
+
+If the answer reveals a problem, ask for the exact symptom or the console
+error rather than guessing from a description.
