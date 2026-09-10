@@ -13,6 +13,8 @@ release/
 .vite/
 .eslintcache
 coverage/
+# Electron and electron-builder downloads, cached by CI.
+.cache/
 
 # The development database lives here; packaged builds use the OS userData
 # dir instead. Generated migrations in drizzle/ ARE tracked.

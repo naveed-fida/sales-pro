@@ -6,8 +6,16 @@ import { runMigrations } from './db/migrate'
 import { loadEnvFile } from './db/paths'
 import { registerIpcHandlers } from './ipc'
 
-// Before anything resolves a path from it. In dev getAppPath() is the repo
-// root, so this picks up the checkout's .env; packaged builds ship none.
+// Development gets its own userData root, and this has to happen before
+// anything reads a path from it. Chromium keeps the single-instance lock and
+// the renderer's storage there, so sharing it with a packaged build means
+// whichever launches second quits on sight.
+if (is.dev) {
+  app.setPath('userData', join(app.getPath('appData'), 'sales-pro-dev'))
+}
+
+// In dev getAppPath() is the repo root, so this picks up the checkout's .env.
+// Packaged builds ship none and fall through to the production defaults.
 loadEnvFile(app.getAppPath())
 
 let mainWindow: BrowserWindow | null = null

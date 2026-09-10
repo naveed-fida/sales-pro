@@ -27,7 +27,16 @@ files:
   - '!components.json'
   - '!{.editorconfig,.eslintrc.cjs,.eslintignore,.prettierrc,.prettierignore}'
   - '!{.env,.env.*,.nvmrc,.npmrc}'
-  - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json,tsconfig.tsbuildinfo}'
+  - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
+  # Glob the real names: the files are tsconfig.node.tsbuildinfo and
+  # tsconfig.web.tsbuildinfo, which a literal "tsconfig.tsbuildinfo" misses.
+  - '!**/*.tsbuildinfo'
+  # Repo furniture that has no business in a shipped app. .data especially:
+  # it holds the development database, so without this the artifact would
+  # carry local rows to users.
+  - '!.data'
+  - '!.cursor'
+  - '!.github'
   # The SQLite amalgamation and addon sources are only needed to compile from
   # source. We ship Node-API prebuilds, so this is 10 MB of dead weight.
   - '!node_modules/better-sqlite3/{deps,src,binding.gyp}'
