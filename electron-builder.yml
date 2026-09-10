@@ -51,6 +51,7 @@ extraResources:
 
 mac:
   category: public.app-category.business
+  icon: build/icon.icns
   # Apple Silicon only. Building x64 or universal would need a second Electron
   # download and hits the universal-merge issue described in the git history;
   # add an x64 entry here if Intel Macs ever need supporting.
@@ -72,6 +73,7 @@ dmg:
   artifactName: ${productName}-${version}-${arch}.${ext}
 
 win:
+  icon: build/icon.ico
   target:
     - target: nsis
       arch:

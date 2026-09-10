@@ -1,0 +1,18 @@
+<!--
+  Sales Pro app icon, Windows variant.
+
+  Same mark as icon.svg, but the tile fills the full canvas with a tighter
+  corner. Windows does not inset or mask app icons the way macOS does, so
+  reusing the macOS geometry would leave the icon looking undersized in the
+  taskbar. The mark is scaled by 1024/824 about the centre to match.
+
+  Regenerate the raster artifacts with `npm run icons`.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <rect x="0" y="0" width="1024" height="1024" rx="230" fill="#0A0A0A"/>
+  <g fill="#FFFFFF" transform="translate(512 512) scale(1.242718) translate(-512 -512)">
+    <rect x="232" y="532" width="150" height="190" rx="48"/>
+    <rect x="437" y="422" width="150" height="300" rx="48"/>
+    <rect x="642" y="302" width="150" height="420" rx="48"/>
+  </g>
+</svg>

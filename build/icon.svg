@@ -1,0 +1,17 @@
+<!--
+  Sales Pro app icon, macOS variant.
+
+  Three ascending bars, monochrome. The tile is inset to 824x824 within a
+  1024 canvas with an r=185 corner, which is the macOS convention, so the
+  icon sits at the same visual weight as system icons in the Dock.
+
+  Regenerate the raster artifacts with `npm run icons`.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <rect x="100" y="100" width="824" height="824" rx="185" fill="#0A0A0A"/>
+  <g fill="#FFFFFF">
+    <rect x="232" y="532" width="150" height="190" rx="48"/>
+    <rect x="437" y="422" width="150" height="300" rx="48"/>
+    <rect x="642" y="302" width="150" height="420" rx="48"/>
+  </g>
+</svg>
