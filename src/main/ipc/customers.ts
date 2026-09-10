@@ -35,32 +35,35 @@ export function registerCustomerHandlers(): void {
     }
   })
 
-  ipcMain.handle(IPC.customers.create, (_event, payload: unknown): IpcResult<Customer> => {
-    // The renderer is untrusted input, so parse before anything else.
-    const parsed = createCustomerSchema.safeParse(payload)
+  ipcMain.handle(
+    IPC.customers.create,
+    (_event, payload: unknown): IpcResult<Customer> => {
+      // The renderer is untrusted input, so parse before anything else.
+      const parsed = createCustomerSchema.safeParse(payload)
 
-    if (!parsed.success) {
-      const [issue] = parsed.error.issues
-      return ipcFail(issue?.message ?? 'Invalid customer.', issue?.path[0]?.toString())
-    }
-
-    try {
-      // .get() rather than destructuring: better-sqlite3's synchronous driver
-      // needs an explicit terminal method to run the statement.
-      const row = getDb().insert(customers).values(parsed.data).returning().get()
-
-      if (!row) return ipcFail('Customer was not created.')
-
-      return ipcOk(row)
-    } catch (error) {
-      if (isUniqueViolation(error)) {
-        return ipcFail('A customer with that email already exists.', 'email')
+      if (!parsed.success) {
+        const [issue] = parsed.error.issues
+        return ipcFail(issue?.message ?? 'Invalid customer.', issue?.path[0]?.toString())
       }
 
-      console.error('customers:create failed', error)
-      return ipcFail('Could not create customer.')
-    }
-  })
+      try {
+        // .get() rather than destructuring: better-sqlite3's synchronous driver
+        // needs an explicit terminal method to run the statement.
+        const row = getDb().insert(customers).values(parsed.data).returning().get()
+
+        if (!row) return ipcFail('Customer was not created.')
+
+        return ipcOk(row)
+      } catch (error) {
+        if (isUniqueViolation(error)) {
+          return ipcFail('A customer with that email already exists.', 'email')
+        }
+
+        console.error('customers:create failed', error)
+        return ipcFail('Could not create customer.')
+      }
+    },
+  )
 }
 
 // Guards against the schemas and the handler signatures drifting apart.

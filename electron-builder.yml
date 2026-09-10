@@ -25,7 +25,11 @@ files:
   - '!electron.vite.config.{js,ts,mjs,cjs}'
   - '!electron-builder.yml'
   - '!components.json'
-  - '!{.editorconfig,.eslintrc.cjs,.eslintignore,.prettierrc,.prettierignore}'
+  - '!{.editorconfig,.eslintignore,.prettierignore}'
+  # Globs, so .prettierrc.json and eslint.config.mjs are covered whatever
+  # extension they end up with.
+  - '!.prettierrc*'
+  - '!eslint.config.*'
   - '!{.env,.env.*,.nvmrc,.npmrc}'
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
   # Glob the real names: the files are tsconfig.node.tsbuildinfo and

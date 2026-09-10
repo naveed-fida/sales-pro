@@ -8,7 +8,8 @@ import { IPC, type CreateCustomerInput } from '@shared/ipc-contract'
 const api = {
   customers: {
     list: () => ipcRenderer.invoke(IPC.customers.list),
-    create: (input: CreateCustomerInput) => ipcRenderer.invoke(IPC.customers.create, input),
+    create: (input: CreateCustomerInput) =>
+      ipcRenderer.invoke(IPC.customers.create, input),
   },
 }
 

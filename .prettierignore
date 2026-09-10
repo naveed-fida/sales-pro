@@ -1,0 +1,13 @@
+node_modules
+out
+release
+dist
+
+# Generated migration history: drizzle-kit owns the formatting.
+drizzle
+
+# Local database and CI caches.
+.data
+.cache
+
+package-lock.json

@@ -12,7 +12,9 @@ import { getDb, getDatabasePath } from './client'
  * archive so the migrator can read it as ordinary files.
  */
 function getMigrationsFolder(): string {
-  return is.dev ? join(app.getAppPath(), 'drizzle') : join(process.resourcesPath, 'drizzle')
+  return is.dev
+    ? join(app.getAppPath(), 'drizzle')
+    : join(process.resourcesPath, 'drizzle')
 }
 
 export function runMigrations(): void {
