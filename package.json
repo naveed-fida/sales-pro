@@ -16,11 +16,15 @@
     "preview": "node scripts/electron-vite.mjs preview",
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json",
-    "typecheck:web": "tsc --noEmit -p tsconfig.web.json"
+    "typecheck:web": "tsc --noEmit -p tsconfig.web.json",
+    "db:generate": "drizzle-kit generate",
+    "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",
     "@electron-toolkit/utils": "^4.0.0",
+    "better-sqlite3": "^13.0.3",
+    "drizzle-orm": "^0.45.2",
     "zod": "^4.5.4"
   },
   "devDependencies": {
@@ -34,7 +38,9 @@
     "@vitejs/plugin-react": "^5.2.0",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.2.6",
+    "drizzle-kit": "^0.31.10",
     "electron": "^44.3.0",
+    "electron-builder": "^26.15.3",
     "electron-vite": "^5.0.0",
     "lucide-react": "^1.43.0",
     "radix-ui": "^1.6.7",
@@ -49,6 +55,10 @@
   },
   "allowScripts": {
     "esbuild@0.25.12": true,
-    "esbuild@0.28.2": true
+    "esbuild@0.28.2": true,
+    "better-sqlite3": false,
+    "fsevents": false,
+    "electron-winstaller": false,
+    "esbuild@0.18.20": true
   }
 }

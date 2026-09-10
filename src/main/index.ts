@@ -1,6 +1,8 @@
 import { join } from 'node:path'
-import { app, shell, BrowserWindow } from 'electron'
+import { app, dialog, shell, BrowserWindow } from 'electron'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
+import { closeDb } from './db/client'
+import { runMigrations } from './db/migrate'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -57,6 +59,22 @@ if (!app.requestSingleInstanceLock()) {
   void app.whenReady().then(() => {
     electronApp.setAppUserModelId('com.salespro.app')
 
+    // Schema must be current before any window can issue a query. Failing here
+    // is unrecoverable, so surface it and exit rather than opening a window
+    // that will throw on its first read.
+    try {
+      runMigrations()
+    } catch (error) {
+      dialog.showErrorBox(
+        'Database error',
+        `Sales Pro could not prepare its database.\n\n${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      )
+      app.exit(1)
+      return
+    }
+
     app.on('browser-window-created', (_, window) => {
       optimizer.watchWindowShortcuts(window)
     })
@@ -70,5 +88,10 @@ if (!app.requestSingleInstanceLock()) {
 
   app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit()
+  })
+
+  // Close the connection cleanly so WAL is checkpointed into the main db file.
+  app.on('will-quit', () => {
+    closeDb()
   })
 }
