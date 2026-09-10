@@ -44,3 +44,16 @@ only for generating them and for `npm run db:studio`.
 Use the Drizzle query builder, not raw SQL strings. Reach for the `sql`
 template helper only for expressions the builder cannot express, and never
 interpolate user input into it directly.
+
+## The database location is resolved, never hardcoded
+
+`src/main/db/paths.ts` is the only place that decides where the file lives:
+`SALES_PRO_DB_PATH` if set, then `<repo>/.data` in development, then the OS
+userData directory once packaged. Both the main process and
+`drizzle.config.ts` import from it so they cannot drift.
+
+Never call `app.getPath('userData')` or join a database filename at a call
+site. Use `getDatabasePath()` from `src/main/db/client.ts`.
+
+Environment variables are read with Node's built-in `.env` support via
+`loadEnvFile()`. Do not add `dotenv`.

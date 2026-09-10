@@ -3,7 +3,12 @@ import { app, dialog, shell, BrowserWindow } from 'electron'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { closeDb } from './db/client'
 import { runMigrations } from './db/migrate'
+import { loadEnvFile } from './db/paths'
 import { registerIpcHandlers } from './ipc'
+
+// Before anything resolves a path from it. In dev getAppPath() is the repo
+// root, so this picks up the checkout's .env; packaged builds ship none.
+loadEnvFile(app.getAppPath())
 
 let mainWindow: BrowserWindow | null = null
 

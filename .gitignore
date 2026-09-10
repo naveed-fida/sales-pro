@@ -14,8 +14,11 @@ release/
 .eslintcache
 coverage/
 
-# Local SQLite databases (the real one lives in the OS userData dir,
-# but keep strays out of the repo). Generated migrations in drizzle/ ARE tracked.
+# The development database lives here; packaged builds use the OS userData
+# dir instead. Generated migrations in drizzle/ ARE tracked.
+.data/
+
+# Stray SQLite files anywhere else in the tree.
 *.db
 *.db-shm
 *.db-wal

@@ -1,7 +1,13 @@
-import { join } from 'node:path'
 import { app } from 'electron'
+import { is } from '@electron-toolkit/utils'
 import Database from 'better-sqlite3'
 import { drizzle } from 'drizzle-orm/better-sqlite3'
+import {
+  devDatabasePath,
+  ensureDatabaseDir,
+  envDatabasePath,
+  prodDatabasePath,
+} from './paths'
 import { customers } from './schema'
 
 const schema = { customers }
@@ -9,18 +15,27 @@ const schema = { customers }
 let connection: Database.Database | null = null
 let database: ReturnType<typeof drizzle<typeof schema>> | null = null
 
+/**
+ * SALES_PRO_DB_PATH wins if set, then development lands inside the checkout
+ * and packaged builds land in userData. In dev `getAppPath()` is the repo
+ * root; once packaged it is inside the asar, which is why the production
+ * branch never touches it.
+ */
 export function getDatabasePath(): string {
-  return join(app.getPath('userData'), 'sales-pro.db')
+  const root = app.getAppPath()
+  const override = envDatabasePath(root)
+  if (override) return override
+
+  return is.dev ? devDatabasePath(root) : prodDatabasePath(app.getPath('userData'))
 }
 
-/**
- * Opens the SQLite connection, or returns the existing one. The file lives in
- * the OS userData directory so it survives app updates and reinstalls.
- */
+/** Opens the SQLite connection, or returns the existing one. */
 export function getDb(): ReturnType<typeof drizzle<typeof schema>> {
   if (database) return database
 
-  connection = new Database(getDatabasePath())
+  const databasePath = getDatabasePath()
+  ensureDatabaseDir(databasePath)
+  connection = new Database(databasePath)
 
   // WAL lets readers run alongside a writer, which matters because Drizzle
   // Studio opens the same file while the app is running.
