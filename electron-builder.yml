@@ -1,0 +1,90 @@
+appId: com.salespro.app
+productName: Sales Pro
+copyright: Copyright © 2026 Sales Pro
+
+directories:
+  output: release
+  buildResources: build
+
+# Our only native dependency, better-sqlite3, ships Node-API prebuilds for all
+# eight platform/arch pairs, and Node-API is ABI-stable across Node and
+# Electron. Rebuilding is therefore pointless, and worse: @electron/rebuild
+# falls back to node-gyp when the target arch differs from the host, which
+# cannot cross-compile, so leaving this on breaks building Windows from macOS
+# and would force an MSVC toolchain onto Windows CI.
+npmRebuild: false
+
+# Exclusion-based rather than an allowlist. electron-builder starts from
+# everything plus production dependencies, so listing what to drop cannot
+# accidentally strip node_modules the main process requires at runtime.
+files:
+  - '!**/.vscode/*'
+  - '!src/*'
+  - '!scripts/*'
+  - '!drizzle.config.ts'
+  - '!electron.vite.config.{js,ts,mjs,cjs}'
+  - '!electron-builder.yml'
+  - '!components.json'
+  - '!{.editorconfig,.eslintrc.cjs,.eslintignore,.prettierrc,.prettierignore}'
+  - '!{.env,.env.*,.nvmrc,.npmrc}'
+  - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json,tsconfig.tsbuildinfo}'
+  # The SQLite amalgamation and addon sources are only needed to compile from
+  # source. We ship Node-API prebuilds, so this is 10 MB of dead weight.
+  - '!node_modules/better-sqlite3/{deps,src,binding.gyp}'
+  # We only target Windows and macOS. Drop the four Linux prebuilds (8.7 MB).
+  - '!node_modules/better-sqlite3/prebuilds/linux*'
+
+# Node's dlopen cannot load a .node file from inside an asar archive, and
+# better-sqlite3 resolves its binary with require('../prebuilds/<target>.node').
+# Unpacking lets Electron's fs shim redirect that to app.asar.unpacked.
+asarUnpack:
+  - '**/node_modules/better-sqlite3/**'
+
+# src/main/db/migrate.ts reads migrations from process.resourcesPath in
+# production, so the generated SQL has to land outside the asar.
+extraResources:
+  - from: drizzle
+    to: drizzle
+    filter:
+      - '**/*.sql'
+      - 'meta/**'
+
+mac:
+  category: public.app-category.business
+  # Apple Silicon only. Building x64 or universal would need a second Electron
+  # download and hits the universal-merge issue described in the git history;
+  # add an x64 entry here if Intel Macs ever need supporting.
+  target:
+    - target: dmg
+      arch: arm64
+    - target: zip
+      arch: arm64
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  # Signing and notarisation stay off by default so a clean checkout can build
+  # without credentials. CI supplies CSC_LINK, CSC_KEY_PASSWORD and
+  # APPLE_API_KEY to turn them on.
+  notarize: false
+
+dmg:
+  artifactName: ${productName}-${version}-${arch}.${ext}
+
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+        - arm64
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  artifactName: ${productName}-${version}-${arch}-setup.${ext}
+  shortcutName: ${productName}
+  createDesktopShortcut: always
+
+# Nothing is uploaded anywhere by default; releases are published from CI.
+publish: null
