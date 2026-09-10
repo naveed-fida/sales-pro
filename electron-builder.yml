@@ -35,6 +35,9 @@ files:
   # Glob the real names: the files are tsconfig.node.tsbuildinfo and
   # tsconfig.web.tsbuildinfo, which a literal "tsconfig.tsbuildinfo" misses.
   - '!**/*.tsbuildinfo'
+  # Documentation is for the repo, not the artifact.
+  - '!docs'
+  - '!**/*.md'
   # Repo furniture that has no business in a shipped app. .data especially:
   # it holds the development database, so without this the artifact would
   # carry local rows to users.
