@@ -1,9 +1,16 @@
-import { contextBridge } from 'electron'
+import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
+import { IPC, type CreateCustomerInput } from '@shared/ipc-contract'
 
-// Feature APIs get added here in the IPC step. Everything the renderer can
-// reach must be listed explicitly - there is no ambient Node access.
-const api = {}
+// Everything the renderer can reach is enumerated here. Channels come from the
+// shared contract, so a renamed channel is a type error rather than a silent
+// no-op at runtime.
+const api = {
+  customers: {
+    list: () => ipcRenderer.invoke(IPC.customers.list),
+    create: (input: CreateCustomerInput) => ipcRenderer.invoke(IPC.customers.create, input),
+  },
+}
 
 if (process.contextIsolated) {
   try {

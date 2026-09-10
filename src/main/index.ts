@@ -3,6 +3,7 @@ import { app, dialog, shell, BrowserWindow } from 'electron'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { closeDb } from './db/client'
 import { runMigrations } from './db/migrate'
+import { registerIpcHandlers } from './ipc'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -74,6 +75,8 @@ if (!app.requestSingleInstanceLock()) {
       app.exit(1)
       return
     }
+
+    registerIpcHandlers()
 
     app.on('browser-window-created', (_, window) => {
       optimizer.watchWindowShortcuts(window)
