@@ -10,7 +10,7 @@ export function AppShell(): React.JSX.Element {
   return (
     <div className="flex h-svh flex-col overflow-hidden">
       <TitleBar />
-      <SidebarProvider className="relative min-h-0 flex-1 [contain:layout]">
+      <SidebarProvider className="relative min-h-0 flex-1 [contain-layout]">
         <AppHotkeys />
         <AppSidebar />
         <SidebarInset>
