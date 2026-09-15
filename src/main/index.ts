@@ -5,6 +5,12 @@ import { closeDb } from './db/client'
 import { runMigrations } from './db/migrate'
 import { loadEnvFile } from './db/paths'
 import { registerIpcHandlers } from './ipc'
+import {
+  handleProductImageProtocol,
+  registerProductImageScheme,
+} from './protocol/product-image'
+
+registerProductImageScheme()
 
 // Development gets its own userData root, and this has to happen before
 // anything reads a path from it. Chromium keeps the single-instance lock and
@@ -97,6 +103,7 @@ if (!app.requestSingleInstanceLock()) {
     }
 
     registerIpcHandlers()
+    handleProductImageProtocol()
 
     app.on('browser-window-created', (_, window) => {
       optimizer.watchWindowShortcuts(window)

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import {
   Controller,
   useFieldArray,
@@ -8,7 +8,7 @@ import {
 } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQueryClient } from '@tanstack/react-query'
-import { Plus, Trash2 } from 'lucide-react'
+import { ImagePlus, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { formatRs } from '@shared/money'
 import { formatQuantity, fromMilli, productUnits } from '@shared/quantity'
@@ -43,8 +43,10 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { categoriesQueryKey, productsQueryKey, productQueryKey } from './use-catalog'
+import { downscaleProductImage } from './downscale-image'
+import { ProductImage } from './product-image'
 import { UNIT_LABELS } from './unit-labels'
+import { categoriesQueryKey, productsQueryKey, productQueryKey } from './use-catalog'
 
 function emptyVariant(reorderLevel: number): SaveProduct['variants'][number] {
   return {
@@ -126,6 +128,17 @@ export function ProductForm({
   const [categoryName, setCategoryName] = useState('')
   const [addingCategory, setAddingCategory] = useState(false)
   const [categoryPending, setCategoryPending] = useState(false)
+  const [pendingBytes, setPendingBytes] = useState<Uint8Array<ArrayBuffer> | null>(null)
+  const [pendingPreview, setPendingPreview] = useState<string | null>(null)
+  const [removeSaved, setRemoveSaved] = useState(false)
+  const [readingPhoto, setReadingPhoto] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    return () => {
+      if (pendingPreview) URL.revokeObjectURL(pendingPreview)
+    }
+  }, [pendingPreview])
 
   async function onSubmit(values: SaveProduct): Promise<void> {
     const result = await window.api.products.save(values)
@@ -143,10 +156,71 @@ export function ProductForm({
       return
     }
 
+    let record = result.data
+
+    if (pendingBytes) {
+      const imageResult = await window.api.products.saveImage({
+        id: record.id,
+        bytes: pendingBytes,
+      })
+      if (!imageResult.ok) {
+        await queryClient.invalidateQueries({ queryKey: productsQueryKey })
+        queryClient.setQueryData(productQueryKey(record.id), record)
+        toast.success(isNew ? 'Product created' : 'Product saved')
+        toast.error(imageResult.error.message)
+        onClose()
+        return
+      }
+      record = imageResult.data
+    } else if (removeSaved && product?.imagePath) {
+      const cleared = await window.api.products.clearImage(record.id)
+      if (!cleared.ok) {
+        await queryClient.invalidateQueries({ queryKey: productsQueryKey })
+        queryClient.setQueryData(productQueryKey(record.id), record)
+        toast.success(isNew ? 'Product created' : 'Product saved')
+        toast.error(cleared.error.message)
+        onClose()
+        return
+      }
+      record = cleared.data
+    }
+
     await queryClient.invalidateQueries({ queryKey: productsQueryKey })
-    queryClient.setQueryData(productQueryKey(result.data.id), result.data)
+    queryClient.setQueryData(productQueryKey(record.id), record)
     toast.success(isNew ? 'Product created' : 'Product saved')
     onClose()
+  }
+
+  async function onPhotoChosen(
+    event: React.ChangeEvent<HTMLInputElement>,
+  ): Promise<void> {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+
+    setReadingPhoto(true)
+    try {
+      const bytes = await downscaleProductImage(file)
+      setPendingBytes(bytes)
+      setPendingPreview((current) => {
+        if (current) URL.revokeObjectURL(current)
+        return URL.createObjectURL(new Blob([bytes], { type: 'image/webp' }))
+      })
+      setRemoveSaved(false)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not read that photo.')
+    } finally {
+      setReadingPhoto(false)
+    }
+  }
+
+  function clearPhoto(): void {
+    setPendingBytes(null)
+    setPendingPreview((current) => {
+      if (current) URL.revokeObjectURL(current)
+      return null
+    })
+    setRemoveSaved(true)
   }
 
   async function addCategory(): Promise<void> {
@@ -177,6 +251,54 @@ export function ProductForm({
     >
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
         <FieldGroup>
+          <div className="flex items-start gap-4">
+            <ProductImage
+              fileName={removeSaved ? null : (product?.imagePath ?? null)}
+              previewUrl={pendingPreview}
+              alt=""
+              className="size-24 shrink-0 rounded-xl ring-1 ring-foreground/10"
+            />
+            <Field>
+              <FieldLabel>Photo</FieldLabel>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={readingPhoto}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <ImagePlus />
+                  {readingPhoto
+                    ? 'Reading…'
+                    : pendingPreview || (product?.imagePath && !removeSaved)
+                      ? 'Change'
+                      : 'Add photo'}
+                </Button>
+                {pendingPreview || (product?.imagePath && !removeSaved) ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    disabled={readingPhoto}
+                    onClick={clearPhoto}
+                  >
+                    Remove
+                  </Button>
+                ) : null}
+              </div>
+              <FieldDescription>
+                JPEG, PNG or WebP. Shrunk on this computer before saving.
+              </FieldDescription>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="hidden"
+                onChange={(event) => void onPhotoChosen(event)}
+              />
+            </Field>
+          </div>
           <div className="grid gap-4 sm:grid-cols-2">
             <Field data-invalid={!!errors.name}>
               <FieldLabel htmlFor="product-name">Name</FieldLabel>
@@ -465,7 +587,7 @@ export function ProductForm({
         <Button type="button" variant="outline" onClick={onClose}>
           Cancel
         </Button>
-        <Button type="submit" disabled={isSubmitting}>
+        <Button type="submit" disabled={isSubmitting || readingPhoto}>
           {isSubmitting ? 'Saving…' : 'Save product'}
         </Button>
       </div>

@@ -26,6 +26,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { ProductImage } from './product-image'
 import { UNIT_LABELS } from './unit-labels'
 
 const catalogTableFeatures = tableFeatures({
@@ -62,6 +63,18 @@ function createColumns({
   onDelete: (product: ProductListItem) => void
 }): ReturnType<(typeof columnHelper)['columns']> {
   return columnHelper.columns([
+    columnHelper.display({
+      id: 'image',
+      header: '',
+      enableGlobalFilter: false,
+      cell: ({ row }) => (
+        <ProductImage
+          fileName={row.original.imagePath}
+          alt=""
+          className="size-10 rounded-md"
+        />
+      ),
+    }),
     columnHelper.accessor('name', {
       header: 'Name',
       sortFn: 'alphanumeric',

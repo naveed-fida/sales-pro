@@ -5,6 +5,7 @@ import type {
   CreateCategoryInput,
   ProductListItem,
   ProductRecord,
+  SaveProductImageInput,
   SaveProductInput,
 } from '@shared/schemas/catalog'
 import type { AppSettings, Printer, SaveSettingsInput } from '@shared/schemas/settings'
@@ -25,6 +26,8 @@ export type Api = {
     get: (id: number) => Promise<IpcResult<ProductRecord>>
     save: (input: SaveProductInput) => Promise<IpcResult<ProductRecord>>
     delete: (id: number) => Promise<IpcResult<null>>
+    saveImage: (input: SaveProductImageInput) => Promise<IpcResult<ProductRecord>>
+    clearImage: (id: number) => Promise<IpcResult<ProductRecord>>
   }
 }
 

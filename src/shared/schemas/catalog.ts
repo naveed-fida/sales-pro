@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { PRODUCT_IMAGE_MAX_BYTES } from '@shared/product-image'
 import { productUnits } from '@shared/quantity'
 
 export const categorySchema = z.object({
@@ -12,6 +13,14 @@ export const createCategorySchema = z.object({
 
 export const productIdSchema = z.object({
   id: z.number().int().positive(),
+})
+
+export const saveProductImageSchema = z.object({
+  id: z.number().int().positive(),
+  bytes: z
+    .instanceof(Uint8Array)
+    .refine((bytes) => bytes.byteLength > 0, 'Photo is empty')
+    .refine((bytes) => bytes.byteLength <= PRODUCT_IMAGE_MAX_BYTES, 'Photo is too large'),
 })
 
 export const variantInputSchema = z.object({
@@ -85,6 +94,7 @@ export const productRecordSchema = z.object({
   categoryId: z.number().int().positive(),
   unit: z.enum(productUnits),
   description: z.string().nullable(),
+  imagePath: z.string().nullable(),
   isActive: z.boolean(),
   variants: z.array(variantRecordSchema),
 })
@@ -101,10 +111,12 @@ export const productListItemSchema = z.object({
   minSalePriceRs: z.number().int(),
   maxSalePriceRs: z.number().int(),
   barcodes: z.string(),
+  imagePath: z.string().nullable(),
 })
 
 export type Category = z.infer<typeof categorySchema>
 export type CreateCategoryInput = z.infer<typeof createCategorySchema>
+export type SaveProductImageInput = z.infer<typeof saveProductImageSchema>
 export type SaveProductInput = z.input<typeof saveProductSchema>
 export type SaveProduct = z.infer<typeof saveProductSchema>
 export type ProductRecord = z.infer<typeof productRecordSchema>

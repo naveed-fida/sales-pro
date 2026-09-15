@@ -18,5 +18,7 @@ export const IPC = {
     get: 'products:get',
     save: 'products:save',
     delete: 'products:delete',
+    saveImage: 'products:saveImage',
+    clearImage: 'products:clearImage',
   },
 } as const

@@ -7,6 +7,7 @@ import { toMilli } from '@shared/quantity'
 import {
   createCategorySchema,
   productIdSchema,
+  saveProductImageSchema,
   saveProductSchema,
   type Category,
   type ProductListItem,
@@ -15,6 +16,10 @@ import {
 } from '@shared/schemas/catalog'
 import { getDb } from '../db/client'
 import { categories, products, productVariants } from '../db/schema'
+import {
+  unlinkProductImageIfOrphaned,
+  writeProductImageFile,
+} from '../files/product-images'
 
 class CatalogError extends Error {
   constructor(
@@ -78,6 +83,7 @@ function listProducts(): ProductListItem[] {
       minSalePriceRs: prices.length > 0 ? Math.min(...prices) : 0,
       maxSalePriceRs: prices.length > 0 ? Math.max(...prices) : 0,
       barcodes: variants.map((variant) => variant.barcode).join(' '),
+      imagePath: product.imagePath,
     }
   })
 }
@@ -100,6 +106,7 @@ function loadProduct(productId: number): ProductRecord | undefined {
     categoryId: product.categoryId,
     unit: product.unit,
     description: product.description,
+    imagePath: product.imagePath,
     isActive: product.isActive,
     variants: variants.map((variant) => ({
       id: variant.id,
@@ -242,7 +249,7 @@ function persistProduct(values: SaveProduct): ProductRecord {
 }
 
 function deleteProduct(productId: number): void {
-  getDb().transaction((tx) => {
+  const imagePath = getDb().transaction((tx) => {
     const product = tx.select().from(products).where(eq(products.id, productId)).get()
     if (!product) throw new CatalogError('Product not found.')
     if (product.isActive) {
@@ -251,7 +258,57 @@ function deleteProduct(productId: number): void {
 
     tx.delete(productVariants).where(eq(productVariants.productId, productId)).run()
     tx.delete(products).where(eq(products.id, productId)).run()
+    return product.imagePath
   })
+
+  if (imagePath) unlinkProductImageIfOrphaned(imagePath)
+}
+
+function saveProductImage(productId: number, bytes: Uint8Array): ProductRecord {
+  let fileName: string
+  try {
+    fileName = writeProductImageFile(bytes)
+  } catch (error) {
+    throw new CatalogError(
+      error instanceof Error ? error.message : 'Could not save the photo.',
+    )
+  }
+  const previous = getDb().transaction((tx) => {
+    const product = tx.select().from(products).where(eq(products.id, productId)).get()
+    if (!product) throw new CatalogError('Product not found.')
+    const previousPath = product.imagePath
+    tx.update(products)
+      .set({ imagePath: fileName, updatedAt: new Date() })
+      .where(eq(products.id, productId))
+      .run()
+    return previousPath
+  })
+
+  if (previous && previous !== fileName) {
+    unlinkProductImageIfOrphaned(previous, productId)
+  }
+
+  const saved = loadProduct(productId)
+  if (!saved) throw new CatalogError('Product not found.')
+  return saved
+}
+
+function clearProductImage(productId: number): ProductRecord {
+  const previous = getDb().transaction((tx) => {
+    const product = tx.select().from(products).where(eq(products.id, productId)).get()
+    if (!product) throw new CatalogError('Product not found.')
+    tx.update(products)
+      .set({ imagePath: null, updatedAt: new Date() })
+      .where(eq(products.id, productId))
+      .run()
+    return product.imagePath
+  })
+
+  if (previous) unlinkProductImageIfOrphaned(previous)
+
+  const saved = loadProduct(productId)
+  if (!saved) throw new CatalogError('Product not found.')
+  return saved
 }
 
 export function registerCatalogHandlers(): void {
@@ -361,4 +418,39 @@ export function registerCatalogHandlers(): void {
       return ipcFail('Could not delete the product.')
     }
   })
+
+  ipcMain.handle(
+    IPC.products.saveImage,
+    (_event, payload: unknown): IpcResult<ProductRecord> => {
+      const parsed = saveProductImageSchema.safeParse(payload)
+      if (!parsed.success) {
+        const [issue] = parsed.error.issues
+        return ipcFail(issue?.message ?? 'Invalid photo.', issue?.path[0]?.toString())
+      }
+
+      try {
+        return ipcOk(saveProductImage(parsed.data.id, parsed.data.bytes))
+      } catch (error) {
+        if (error instanceof CatalogError) return ipcFail(error.message)
+        console.error('products:saveImage failed', error)
+        return ipcFail('Could not save the photo.')
+      }
+    },
+  )
+
+  ipcMain.handle(
+    IPC.products.clearImage,
+    (_event, payload: unknown): IpcResult<ProductRecord> => {
+      const parsed = productIdSchema.safeParse(payload)
+      if (!parsed.success) return ipcFail('Product not found.')
+
+      try {
+        return ipcOk(clearProductImage(parsed.data.id))
+      } catch (error) {
+        if (error instanceof CatalogError) return ipcFail(error.message)
+        console.error('products:clearImage failed', error)
+        return ipcFail('Could not remove the photo.')
+      }
+    },
+  )
 }

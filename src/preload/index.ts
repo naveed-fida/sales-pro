@@ -1,7 +1,11 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import { electronAPI } from '@electron-toolkit/preload'
 import { IPC } from '@shared/ipc'
-import type { CreateCategoryInput, SaveProductInput } from '@shared/schemas/catalog'
+import type {
+  CreateCategoryInput,
+  SaveProductImageInput,
+  SaveProductInput,
+} from '@shared/schemas/catalog'
 import type { SaveSettingsInput } from '@shared/schemas/settings'
 
 // Everything the renderer can reach is enumerated here. Channels come from
@@ -24,6 +28,9 @@ const api = {
     get: (id: number) => ipcRenderer.invoke(IPC.products.get, { id }),
     save: (input: SaveProductInput) => ipcRenderer.invoke(IPC.products.save, input),
     delete: (id: number) => ipcRenderer.invoke(IPC.products.delete, { id }),
+    saveImage: (input: SaveProductImageInput) =>
+      ipcRenderer.invoke(IPC.products.saveImage, input),
+    clearImage: (id: number) => ipcRenderer.invoke(IPC.products.clearImage, { id }),
   },
 }
 
