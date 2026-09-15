@@ -31,10 +31,10 @@ function AlertDialogOverlay({
   return (
     <AlertDialogPrimitive.Overlay
       data-slot="alert-dialog-overlay"
-        className={cn(
-          'title-bar-no-drag fixed inset-0 z-50 bg-black/10 duration-100 supports-backdrop-filter:backdrop-blur-xs data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0',
-          className,
-        )}
+      className={cn(
+        'title-bar-no-drag fixed inset-0 z-50 bg-black/10 duration-100 supports-backdrop-filter:backdrop-blur-xs data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0',
+        className,
+      )}
       {...props}
     />
   )
@@ -43,8 +43,6 @@ function AlertDialogOverlay({
 function AlertDialogContent({
   className,
   size = 'default',
-  onPointerDownOutside,
-  onInteractOutside,
   ...props
 }: React.ComponentProps<typeof AlertDialogPrimitive.Content> & {
   size?: 'default' | 'sm'
@@ -60,14 +58,6 @@ function AlertDialogContent({
           className,
         )}
         {...props}
-        onPointerDownOutside={(event) => {
-          event.preventDefault()
-          onPointerDownOutside?.(event)
-        }}
-        onInteractOutside={(event) => {
-          event.preventDefault()
-          onInteractOutside?.(event)
-        }}
       />
     </AlertDialogPortal>
   )

@@ -6,7 +6,9 @@ import type {
   SaveProductImageInput,
   SaveProductInput,
 } from '@shared/schemas/catalog'
+import type { ReceivePurchaseInput } from '@shared/schemas/purchases'
 import type { SaveSettingsInput } from '@shared/schemas/settings'
+import type { SaveSupplierInput } from '@shared/schemas/suppliers'
 
 // Everything the renderer can reach is enumerated here. Channels come from
 // src/shared/ipc.ts, so a renamed channel is a type error rather than a silent
@@ -32,6 +34,19 @@ const api = {
     saveImage: (input: SaveProductImageInput) =>
       ipcRenderer.invoke(IPC.products.saveImage, input),
     clearImage: (id: number) => ipcRenderer.invoke(IPC.products.clearImage, { id }),
+  },
+  suppliers: {
+    list: () => ipcRenderer.invoke(IPC.suppliers.list),
+    get: (id: number) => ipcRenderer.invoke(IPC.suppliers.get, { id }),
+    save: (input: SaveSupplierInput) => ipcRenderer.invoke(IPC.suppliers.save, input),
+    delete: (id: number) => ipcRenderer.invoke(IPC.suppliers.delete, { id }),
+  },
+  purchases: {
+    list: () => ipcRenderer.invoke(IPC.purchases.list),
+    get: (id: number) => ipcRenderer.invoke(IPC.purchases.get, { id }),
+    receive: (input: ReceivePurchaseInput) =>
+      ipcRenderer.invoke(IPC.purchases.receive, input),
+    catalog: () => ipcRenderer.invoke(IPC.purchases.catalog),
   },
 }
 

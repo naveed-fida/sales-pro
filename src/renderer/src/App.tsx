@@ -5,6 +5,7 @@ import { AppShell } from '@/components/app-shell'
 import { PosPage } from '@/features/pos/pos-page'
 import { ProductsPage } from '@/features/products/products-page'
 import { PurchasesPage } from '@/features/purchases/purchases-page'
+import { PurchaseEntryPage } from '@/features/purchases/purchase-entry-page'
 import { SalesPage } from '@/features/sales/sales-page'
 import { ReturnsPage } from '@/features/returns/returns-page'
 import { ExpensesPage } from '@/features/expenses/expenses-page'
@@ -19,6 +20,7 @@ export function App(): React.JSX.Element {
           <Route index element={<PosPage />} />
           <Route path="products" element={<ProductsPage />} />
           <Route path="purchases" element={<PurchasesPage />} />
+          <Route path="purchases/new" element={<PurchaseEntryPage />} />
           <Route path="sales" element={<SalesPage />} />
           <Route path="returns" element={<ReturnsPage />} />
           <Route path="expenses" element={<ExpensesPage />} />

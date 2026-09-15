@@ -1,5 +1,7 @@
 import { registerCatalogHandlers } from './catalog'
+import { registerPurchasesHandlers } from './purchases'
 import { registerSettingsHandlers } from './settings'
+import { registerSuppliersHandlers } from './suppliers'
 
 /**
  * Call once, after app.whenReady and after migrations, so no handler can run a
@@ -8,4 +10,6 @@ import { registerSettingsHandlers } from './settings'
 export function registerIpcHandlers(): void {
   registerSettingsHandlers()
   registerCatalogHandlers()
+  registerSuppliersHandlers()
+  registerPurchasesHandlers()
 }

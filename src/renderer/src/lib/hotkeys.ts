@@ -46,3 +46,11 @@ export const POS_HOTKEYS = {
   recall: { combo: 'f10', label: 'F10' },
   complete: { combo: 'f12', label: 'F12' },
 } as const
+
+export const PURCHASE_HOTKEYS = {
+  quantity: { combo: 'f2', label: 'F2' },
+  cost: { combo: 'f3', label: 'F3' },
+  lineDiscount: { combo: 'f5', label: 'F5' },
+  billDiscount: { combo: 'f6', label: 'F6' },
+  complete: { combo: 'f12', label: 'F12' },
+} as const

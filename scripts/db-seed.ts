@@ -2,6 +2,7 @@ import { existsSync } from 'node:fs'
 import { devDatabasePath, envDatabasePath, loadEnvFile } from '../src/main/db/paths.ts'
 import { categories } from '../src/main/db/schema.ts'
 import { seedCatalog } from '../src/main/db/seed/catalog.ts'
+import { seedPurchases } from '../src/main/db/seed/purchases.ts'
 import { openDatabase } from '../src/main/db/sqlite.ts'
 
 /**
@@ -30,12 +31,16 @@ function main(): void {
     )
   }
 
-  const summary = seedCatalog(db)
+  const catalog = seedCatalog(db)
+  const purchases = seedPurchases(db)
   sqlite.close()
 
   console.log(`Seeded ${databasePath}`)
   console.log(
-    `categories +${summary.categoriesCreated}, products +${summary.productsCreated}, skipped ${summary.productsSkipped}`,
+    `categories +${catalog.categoriesCreated}, products +${catalog.productsCreated}, skipped ${catalog.productsSkipped}`,
+  )
+  console.log(
+    `suppliers +${purchases.suppliersCreated}, purchases +${purchases.purchasesCreated}`,
   )
 }
 

@@ -22,4 +22,16 @@ export const IPC = {
     clearImage: 'products:clearImage',
     listVariants: 'products:listVariants',
   },
+  suppliers: {
+    list: 'suppliers:list',
+    get: 'suppliers:get',
+    save: 'suppliers:save',
+    delete: 'suppliers:delete',
+  },
+  purchases: {
+    list: 'purchases:list',
+    get: 'purchases:get',
+    receive: 'purchases:receive',
+    catalog: 'purchases:catalog',
+  },
 } as const
