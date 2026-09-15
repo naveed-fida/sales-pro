@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
-import { Plus } from 'lucide-react'
+import { Barcode, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { productUnits, type ProductUnit } from '@shared/quantity'
 import type { ProductListItem } from '@shared/schemas/catalog'
@@ -33,6 +33,7 @@ import {
 } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useSettingsQuery } from '@/features/settings/use-settings'
+import { LabelsDialog } from './labels-dialog'
 import { ProductForm } from './product-form'
 import { ProductsTable } from './products-table'
 import { UNIT_LABELS } from './unit-labels'
@@ -105,6 +106,8 @@ export function ProductsPage(): React.JSX.Element {
   const [editor, setEditor] = useState<number | 'new' | null>(null)
   const [pendingDelete, setPendingDelete] = useState<ProductListItem | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [labelsOpen, setLabelsOpen] = useState(false)
+  const settingsQuery = useSettingsQuery()
   const onEdit = useCallback((id: number) => setEditor(id), [])
   const onDelete = useCallback(
     (product: ProductListItem) => setPendingDelete(product),
@@ -141,10 +144,16 @@ export function ProductsPage(): React.JSX.Element {
             Categories, units, variants, barcodes and sale prices.
           </p>
         </div>
-        <Button type="button" onClick={() => setEditor('new')}>
-          <Plus />
-          New product
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" variant="outline" onClick={() => setLabelsOpen(true)}>
+            <Barcode />
+            Labels
+          </Button>
+          <Button type="button" onClick={() => setEditor('new')}>
+            <Plus />
+            New product
+          </Button>
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -291,6 +300,12 @@ export function ProductsPage(): React.JSX.Element {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <LabelsDialog
+        open={labelsOpen}
+        onOpenChange={setLabelsOpen}
+        shopName={settingsQuery.data?.shopName ?? ''}
+      />
     </div>
   )
 }

@@ -5,6 +5,7 @@ import type {
   CreateCategoryInput,
   ProductListItem,
   ProductRecord,
+  LabelVariant,
   SaveProductImageInput,
   SaveProductInput,
 } from '@shared/schemas/catalog'
@@ -23,6 +24,7 @@ export type Api = {
   }
   products: {
     list: () => Promise<IpcResult<ProductListItem[]>>
+    listVariants: () => Promise<IpcResult<LabelVariant[]>>
     get: (id: number) => Promise<IpcResult<ProductRecord>>
     save: (input: SaveProductInput) => Promise<IpcResult<ProductRecord>>
     delete: (id: number) => Promise<IpcResult<null>>

@@ -114,6 +114,16 @@ export const productListItemSchema = z.object({
   imagePath: z.string().nullable(),
 })
 
+export const labelVariantSchema = z.object({
+  variantId: z.number().int().positive(),
+  productId: z.number().int().positive(),
+  productName: z.string(),
+  barcode: z.string(),
+  size: z.string().nullable(),
+  colour: z.string().nullable(),
+  salePriceRs: z.number().int(),
+})
+
 export type Category = z.infer<typeof categorySchema>
 export type CreateCategoryInput = z.infer<typeof createCategorySchema>
 export type SaveProductImageInput = z.infer<typeof saveProductImageSchema>
@@ -121,4 +131,5 @@ export type SaveProductInput = z.input<typeof saveProductSchema>
 export type SaveProduct = z.infer<typeof saveProductSchema>
 export type ProductRecord = z.infer<typeof productRecordSchema>
 export type ProductListItem = z.infer<typeof productListItemSchema>
+export type LabelVariant = z.infer<typeof labelVariantSchema>
 export type VariantRecord = z.infer<typeof variantRecordSchema>

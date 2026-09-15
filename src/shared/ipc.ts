@@ -20,5 +20,6 @@ export const IPC = {
     delete: 'products:delete',
     saveImage: 'products:saveImage',
     clearImage: 'products:clearImage',
+    listVariants: 'products:listVariants',
   },
 } as const

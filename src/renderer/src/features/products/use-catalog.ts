@@ -1,8 +1,14 @@
 import { useQuery } from '@tanstack/react-query'
-import type { Category, ProductListItem, ProductRecord } from '@shared/schemas/catalog'
+import type {
+  Category,
+  LabelVariant,
+  ProductListItem,
+  ProductRecord,
+} from '@shared/schemas/catalog'
 
 export const categoriesQueryKey = ['categories'] as const
 export const productsQueryKey = ['products'] as const
+export const labelVariantsQueryKey = ['products', 'variants'] as const
 
 export function productQueryKey(id: number): readonly ['products', number] {
   return ['products', id] as const
@@ -24,6 +30,20 @@ export function useProductsQuery(): ReturnType<typeof useQuery<ProductListItem[]
     queryKey: productsQueryKey,
     queryFn: async (): Promise<ProductListItem[]> => {
       const result = await window.api.products.list()
+      if (!result.ok) throw new Error(result.error.message)
+      return result.data
+    },
+  })
+}
+
+export function useLabelVariantsQuery(
+  enabled = true,
+): ReturnType<typeof useQuery<LabelVariant[]>> {
+  return useQuery({
+    queryKey: labelVariantsQueryKey,
+    enabled,
+    queryFn: async (): Promise<LabelVariant[]> => {
+      const result = await window.api.products.listVariants()
       if (!result.ok) throw new Error(result.error.message)
       return result.data
     },

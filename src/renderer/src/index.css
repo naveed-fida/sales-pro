@@ -129,6 +129,18 @@
   }
 }
 
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 0;
+  }
+
+  html,
+  body {
+    background: #fff;
+  }
+}
+
 .title-bar {
   -webkit-app-region: drag;
   app-region: drag;

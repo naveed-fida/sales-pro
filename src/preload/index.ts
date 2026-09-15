@@ -25,6 +25,7 @@ const api = {
   },
   products: {
     list: () => ipcRenderer.invoke(IPC.products.list),
+    listVariants: () => ipcRenderer.invoke(IPC.products.listVariants),
     get: (id: number) => ipcRenderer.invoke(IPC.products.get, { id }),
     save: (input: SaveProductInput) => ipcRenderer.invoke(IPC.products.save, input),
     delete: (id: number) => ipcRenderer.invoke(IPC.products.delete, { id }),

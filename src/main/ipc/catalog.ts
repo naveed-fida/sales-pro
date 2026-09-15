@@ -13,6 +13,7 @@ import {
   type ProductListItem,
   type ProductRecord,
   type SaveProduct,
+  type LabelVariant,
 } from '@shared/schemas/catalog'
 import { getDb } from '../db/client'
 import { categories, products, productVariants } from '../db/schema'
@@ -86,6 +87,36 @@ function listProducts(): ProductListItem[] {
       imagePath: product.imagePath,
     }
   })
+}
+
+function listLabelVariants(): LabelVariant[] {
+  const db = getDb()
+  const productRows = db.select().from(products).orderBy(asc(products.name)).all()
+  const variantRows = db
+    .select()
+    .from(productVariants)
+    .orderBy(asc(productVariants.id))
+    .all()
+  const variantsByProduct = groupBy(variantRows, (row) => String(row.productId))
+  const rows: LabelVariant[] = []
+
+  for (const product of productRows) {
+    if (!product.isActive) continue
+    for (const variant of variantsByProduct[String(product.id)] ?? []) {
+      if (!variant.isActive) continue
+      rows.push({
+        variantId: variant.id,
+        productId: product.id,
+        productName: product.name,
+        barcode: variant.barcode,
+        size: variant.size,
+        colour: variant.colour,
+        salePriceRs: variant.salePriceRs,
+      })
+    }
+  }
+
+  return rows
 }
 
 function loadProduct(productId: number): ProductRecord | undefined {
@@ -353,6 +384,15 @@ export function registerCatalogHandlers(): void {
     } catch (error) {
       console.error('products:list failed', error)
       return ipcFail('Could not load products.')
+    }
+  })
+
+  ipcMain.handle(IPC.products.listVariants, (): IpcResult<LabelVariant[]> => {
+    try {
+      return ipcOk(listLabelVariants())
+    } catch (error) {
+      console.error('products:listVariants failed', error)
+      return ipcFail('Could not load variants.')
     }
   })
 
