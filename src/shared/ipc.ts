@@ -3,4 +3,10 @@
  * write a string-literal channel at a call site. Feature groups are added as
  * each slice lands.
  */
-export const IPC = {} as const
+export const IPC = {
+  settings: {
+    get: 'settings:get',
+    save: 'settings:save',
+    listPrinters: 'settings:listPrinters',
+  },
+} as const

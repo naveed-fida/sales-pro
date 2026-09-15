@@ -1,10 +1,14 @@
 import type { ElectronAPI } from '@electron-toolkit/preload'
+import type { IpcResult } from '@shared/ipc-result'
+import type { AppSettings, Printer, SaveSettingsInput } from '@shared/schemas/settings'
 
-// The renderer-facing surface. Payload and return types are derived from the
-// zod schemas in src/shared, so the contract cannot drift between the two
-// sides. Feature methods are added as each slice lands.
 export type Api = {
   platform: string
+  settings: {
+    get: () => Promise<IpcResult<AppSettings>>
+    save: (input: SaveSettingsInput) => Promise<IpcResult<AppSettings>>
+    listPrinters: () => Promise<IpcResult<Printer[]>>
+  }
 }
 
 declare global {
