@@ -1,3 +1,4 @@
+import { registerCatalogHandlers } from './catalog'
 import { registerSettingsHandlers } from './settings'
 
 /**
@@ -6,4 +7,5 @@ import { registerSettingsHandlers } from './settings'
  */
 export function registerIpcHandlers(): void {
   registerSettingsHandlers()
+  registerCatalogHandlers()
 }

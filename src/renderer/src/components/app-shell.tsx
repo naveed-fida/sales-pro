@@ -13,7 +13,7 @@ export function AppShell(): React.JSX.Element {
       <SidebarProvider className="relative min-h-0 flex-1 contain-layout">
         <AppHotkeys />
         <AppSidebar />
-        <SidebarInset>
+        <SidebarInset className="min-h-0 overflow-hidden">
           <header className="title-bar flex h-12 shrink-0 items-center gap-2 border-b px-3">
             <SidebarTrigger className="title-bar-no-drag" />
             <Separator orientation="vertical" className="h-4" />

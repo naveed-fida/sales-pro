@@ -1,17 +1,10 @@
 import { app } from 'electron'
 import { is } from '@electron-toolkit/utils'
-import Database from 'better-sqlite3'
-import { drizzle } from 'drizzle-orm/better-sqlite3'
-import {
-  devDatabasePath,
-  ensureDatabaseDir,
-  envDatabasePath,
-  prodDatabasePath,
-} from './paths'
-import * as schema from './schema'
+import { devDatabasePath, envDatabasePath, prodDatabasePath } from './paths'
+import { openDatabase, type AppDatabase, type SqliteConnection } from './sqlite'
 
-let connection: Database.Database | null = null
-let database: ReturnType<typeof drizzle<typeof schema>> | null = null
+let connection: SqliteConnection | null = null
+let database: AppDatabase | null = null
 
 /**
  * SALES_PRO_DB_PATH wins if set, then development lands inside the checkout
@@ -28,27 +21,17 @@ export function getDatabasePath(): string {
 }
 
 /** Opens the SQLite connection, or returns the existing one. */
-export function getDb(): ReturnType<typeof drizzle<typeof schema>> {
+export function getDb(): AppDatabase {
   if (database) return database
 
-  const databasePath = getDatabasePath()
-  ensureDatabaseDir(databasePath)
-  connection = new Database(databasePath)
-
-  // WAL lets readers run alongside a writer, which matters because Drizzle
-  // Studio opens the same file while the app is running.
-  connection.pragma('journal_mode = WAL')
-  // Wait rather than throwing SQLITE_BUSY the instant another connection holds
-  // the write lock.
-  connection.pragma('busy_timeout = 5000')
-  connection.pragma('foreign_keys = ON')
-
-  database = drizzle(connection, { schema })
+  const opened = openDatabase(getDatabasePath())
+  connection = opened.sqlite
+  database = opened.db
   return database
 }
 
 /** The underlying better-sqlite3 handle. Prefer getDb() for queries. */
-export function getSqlite(): Database.Database {
+export function getSqlite(): SqliteConnection {
   getDb()
   if (!connection) {
     throw new Error('Database connection is not open.')

@@ -4,6 +4,7 @@
   "include": [
     "electron.vite.config.ts",
     "drizzle.config.ts",
+    "scripts/**/*.ts",
     "src/main/**/*",
     "src/preload/**/*",
     "src/shared/**/*"
@@ -11,6 +12,7 @@
   "compilerOptions": {
     "composite": true,
     "noEmit": true,
+    "allowImportingTsExtensions": true,
     "types": ["node", "electron-vite/node"],
     "paths": {
       "@shared/*": ["./src/shared/*"]

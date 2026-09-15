@@ -26,7 +26,8 @@
     "build:mac": "npm run build && electron-builder --mac",
     "build:win": "npm run build && electron-builder --win",
     "db:generate": "drizzle-kit generate",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "db:seed": "node --experimental-strip-types --no-warnings=ExperimentalWarning scripts/db-seed.ts"
   },
   "dependencies": {
     "@electron-toolkit/preload": "^3.0.2",

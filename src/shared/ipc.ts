@@ -9,4 +9,14 @@ export const IPC = {
     save: 'settings:save',
     listPrinters: 'settings:listPrinters',
   },
+  categories: {
+    list: 'categories:list',
+    create: 'categories:create',
+  },
+  products: {
+    list: 'products:list',
+    get: 'products:get',
+    save: 'products:save',
+    delete: 'products:delete',
+  },
 } as const
