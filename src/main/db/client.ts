@@ -47,6 +47,15 @@ export function getDb(): ReturnType<typeof drizzle<typeof schema>> {
   return database
 }
 
+/** The underlying better-sqlite3 handle. Prefer getDb() for queries. */
+export function getSqlite(): Database.Database {
+  getDb()
+  if (!connection) {
+    throw new Error('Database connection is not open.')
+  }
+  return connection
+}
+
 export function closeDb(): void {
   connection?.close()
   connection = null

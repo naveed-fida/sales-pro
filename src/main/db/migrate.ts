@@ -3,7 +3,7 @@ import { join } from 'node:path'
 import { app } from 'electron'
 import { is } from '@electron-toolkit/utils'
 import { migrate } from 'drizzle-orm/better-sqlite3/migrator'
-import { getDb, getDatabasePath } from './client'
+import { getDb, getDatabasePath, getSqlite } from './client'
 
 /**
  * Generated migration SQL lives in drizzle/ at the repo root during
@@ -26,6 +26,13 @@ export function runMigrations(): void {
     )
   }
 
+  // drizzle-kit emits CREATE TABLE in name order, so child tables can appear
+  // before their parents. SQLite will refuse that while foreign_keys is on.
+  // The pragma cannot change inside the migrator's transaction, so it has to
+  // be off for the whole run. Enforcement resumes immediately after.
+  const sqlite = getSqlite()
+  sqlite.pragma('foreign_keys = OFF')
   migrate(getDb(), { migrationsFolder })
+  sqlite.pragma('foreign_keys = ON')
   console.log(`Database ready at ${getDatabasePath()}`)
 }
