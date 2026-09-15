@@ -28,7 +28,14 @@ function createWindow(): void {
     minHeight: 600,
     show: false,
     autoHideMenuBar: true,
-    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
+    // Custom title bar on both platforms: traffic lights on macOS, overlay
+    // caption buttons on Windows. The renderer draws logo, name, and drag region.
+    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'hidden',
+    trafficLightPosition: process.platform === 'darwin' ? { x: 16, y: 16 } : undefined,
+    titleBarOverlay:
+      process.platform === 'win32'
+        ? { color: '#fafafa', symbolColor: '#0a0a0a', height: 48 }
+        : undefined,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       // Keep the renderer untrusted: no Node, no direct filesystem. Everything

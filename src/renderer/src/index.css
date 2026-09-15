@@ -128,3 +128,18 @@
     @apply font-sans;
   }
 }
+
+.title-bar {
+  -webkit-app-region: drag;
+  app-region: drag;
+  /* Windows overlay caption buttons sit on the right; no-ops on macOS. */
+  padding-right: max(
+    0.75rem,
+    calc(100% - env(titlebar-area-x, 0px) - env(titlebar-area-width, 100%))
+  );
+}
+
+.title-bar-no-drag {
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}

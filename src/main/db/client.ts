@@ -8,9 +8,7 @@ import {
   envDatabasePath,
   prodDatabasePath,
 } from './paths'
-import { customers } from './schema'
-
-const schema = { customers }
+import * as schema from './schema'
 
 let connection: Database.Database | null = null
 let database: ReturnType<typeof drizzle<typeof schema>> | null = null

@@ -9,8 +9,9 @@ alwaysApply: false
 ## IPC goes through the shared contract
 
 The renderer has no Node and no filesystem access. Every main-process call
-crosses `contextBridge`, and the channel names and payload schemas live in
-`src/shared/ipc-contract.ts` as the single source of truth.
+crosses `contextBridge`. Channel names live in `src/shared/ipc.ts`, the
+result envelope in `src/shared/ipc-result.ts`, and per-domain Zod schemas in
+`src/shared/schemas/<domain>.ts`.
 
 - Never write a string-literal channel at a call site. Import the constant.
 - Validate every incoming payload in the handler with `.parse()` before it
@@ -20,13 +21,14 @@ crosses `contextBridge`, and the channel names and payload schemas live in
 
 ```ts
 // BAD - literal channel, unvalidated body
-ipcMain.handle('customers:create', (_e, body) => db.insert(customers).values(body))
+ipcMain.handle('sales:create', (_e, body) => db.insert(sales).values(body))
 
 // GOOD
-import { CHANNELS, createCustomerSchema } from '@shared/ipc-contract'
+import { IPC } from '@shared/ipc'
+import { createSaleSchema } from '@shared/schemas/sales'
 
-ipcMain.handle(CHANNELS.customers.create, (_e, body) =>
-  db.insert(customers).values(createCustomerSchema.parse(body)).returning(),
+ipcMain.handle(IPC.sales.create, (_e, body) =>
+  db.insert(sales).values(createSaleSchema.parse(body)).returning(),
 )
 ```
 
