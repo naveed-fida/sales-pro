@@ -33,6 +33,7 @@ import {
 } from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { formatRs } from '@shared/money'
+import { reportsQueryKey } from '@/features/reports/use-reports'
 import { ExpenseForm } from './expense-form'
 import { ExpensesTable } from './expenses-table'
 import { expensesQueryKey, useExpensesQuery } from './use-expenses'
@@ -82,6 +83,7 @@ export function ExpensesPage(): React.JSX.Element {
       return
     }
     await queryClient.invalidateQueries({ queryKey: expensesQueryKey })
+    await queryClient.invalidateQueries({ queryKey: reportsQueryKey })
     setPendingDelete(null)
     setEditor(null)
     toast.success('Expense deleted')

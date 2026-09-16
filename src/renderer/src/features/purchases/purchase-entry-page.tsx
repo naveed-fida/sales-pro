@@ -54,6 +54,7 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { UNIT_LABELS } from '@/features/products/unit-labels'
 import { labelVariantsQueryKey, productsQueryKey } from '@/features/products/use-catalog'
+import { reportsQueryKey } from '@/features/reports/use-reports'
 import { PURCHASE_HOTKEYS } from '@/lib/hotkeys'
 import { NumberEditDialog } from '@/components/number-edit-dialog'
 import { SupplierForm } from './supplier-form'
@@ -210,6 +211,7 @@ function PurchaseEntryForm({
 
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: purchasesQueryKey }),
+      queryClient.invalidateQueries({ queryKey: reportsQueryKey }),
       queryClient.invalidateQueries({ queryKey: productsQueryKey }),
       queryClient.invalidateQueries({ queryKey: labelVariantsQueryKey }),
       queryClient.invalidateQueries({ queryKey: purchaseCatalogQueryKey }),

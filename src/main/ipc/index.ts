@@ -2,6 +2,7 @@ import { registerCatalogHandlers } from './catalog'
 import { registerClockHandlers, startClockWatch } from './clock'
 import { registerExpensesHandlers } from './expenses'
 import { registerPurchasesHandlers } from './purchases'
+import { registerReportsHandlers } from './reports'
 import { registerReturnsHandlers } from './returns'
 import { registerSalesHandlers } from './sales'
 import { registerSettingsHandlers } from './settings'
@@ -20,5 +21,6 @@ export function registerIpcHandlers(): void {
   registerSalesHandlers()
   registerReturnsHandlers()
   registerExpensesHandlers()
+  registerReportsHandlers()
   startClockWatch()
 }

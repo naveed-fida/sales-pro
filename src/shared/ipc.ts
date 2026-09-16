@@ -60,4 +60,7 @@ export const IPC = {
     save: 'expenses:save',
     delete: 'expenses:delete',
   },
+  reports: {
+    summary: 'reports:summary',
+  },
 } as const

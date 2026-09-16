@@ -9,6 +9,7 @@ import type {
 import type { ClockStatus } from '@shared/schemas/clock'
 import type { SaveExpenseInput } from '@shared/schemas/expenses'
 import type { ReceivePurchaseInput } from '@shared/schemas/purchases'
+import type { ReportRangeInput } from '@shared/schemas/reports'
 import type { CompleteReturnInput, LookupReturnInput } from '@shared/schemas/returns'
 import type {
   CompleteSaleInput,
@@ -91,6 +92,9 @@ const api = {
     list: () => ipcRenderer.invoke(IPC.expenses.list),
     save: (input: SaveExpenseInput) => ipcRenderer.invoke(IPC.expenses.save, input),
     delete: (id: number) => ipcRenderer.invoke(IPC.expenses.delete, { id }),
+  },
+  reports: {
+    summary: (input: ReportRangeInput) => ipcRenderer.invoke(IPC.reports.summary, input),
   },
 }
 

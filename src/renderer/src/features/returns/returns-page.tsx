@@ -35,6 +35,7 @@ import { UNIT_LABELS } from '@/features/products/unit-labels'
 import { labelVariantsQueryKey, productsQueryKey } from '@/features/products/use-catalog'
 import { posCatalogQueryKey } from '@/features/pos/use-pos'
 import { purchaseCatalogQueryKey } from '@/features/purchases/use-purchases'
+import { reportsQueryKey } from '@/features/reports/use-reports'
 import { SALE_STATUS_LABELS } from '@/features/sales/status-labels'
 import { salesQueryKey } from '@/features/sales/use-sales'
 import { RETURN_HOTKEYS } from '@/lib/hotkeys'
@@ -181,6 +182,7 @@ export function ReturnsPage(): React.JSX.Element {
     )
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: salesQueryKey }),
+      queryClient.invalidateQueries({ queryKey: reportsQueryKey }),
       queryClient.invalidateQueries({ queryKey: posCatalogQueryKey }),
       queryClient.invalidateQueries({ queryKey: purchaseCatalogQueryKey }),
       queryClient.invalidateQueries({ queryKey: productsQueryKey }),

@@ -17,6 +17,7 @@ import type {
   PurchaseRecord,
   ReceivePurchaseInput,
 } from '@shared/schemas/purchases'
+import type { ReportRangeInput, ReportSummary } from '@shared/schemas/reports'
 import type {
   CompletedReturn,
   CompleteReturnInput,
@@ -94,6 +95,9 @@ export type Api = {
     list: () => Promise<IpcResult<Expense[]>>
     save: (input: SaveExpenseInput) => Promise<IpcResult<Expense>>
     delete: (id: number) => Promise<IpcResult<null>>
+  }
+  reports: {
+    summary: (input: ReportRangeInput) => Promise<IpcResult<ReportSummary>>
   }
 }
 

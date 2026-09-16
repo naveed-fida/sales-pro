@@ -44,6 +44,7 @@ import {
 import { UNIT_LABELS } from '@/features/products/unit-labels'
 import { labelVariantsQueryKey, productsQueryKey } from '@/features/products/use-catalog'
 import { purchaseCatalogQueryKey } from '@/features/purchases/use-purchases'
+import { reportsQueryKey } from '@/features/reports/use-reports'
 import { salesQueryKey } from '@/features/sales/use-sales'
 import { POS_HOTKEYS } from '@/lib/hotkeys'
 import { HoldRecallDialog } from './hold-recall-dialog'
@@ -258,6 +259,7 @@ function PosSale({ variants }: { variants: PosCatalogVariant[] }): React.JSX.Ele
       queryClient.invalidateQueries({ queryKey: labelVariantsQueryKey }),
       queryClient.invalidateQueries({ queryKey: holdsQueryKey }),
       queryClient.invalidateQueries({ queryKey: salesQueryKey }),
+      queryClient.invalidateQueries({ queryKey: reportsQueryKey }),
     ])
   }
 

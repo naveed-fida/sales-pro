@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button'
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { reportsQueryKey } from '@/features/reports/use-reports'
 import { expensesQueryKey } from './use-expenses'
 
 function emptyExpense(): SaveExpenseInput {
@@ -79,6 +80,7 @@ export function ExpenseForm({
     }
 
     await queryClient.invalidateQueries({ queryKey: expensesQueryKey })
+    await queryClient.invalidateQueries({ queryKey: reportsQueryKey })
     toast.success(expense ? 'Expense saved' : 'Expense added')
     onClose()
   }
