@@ -8,6 +8,7 @@ import type {
 } from '@shared/schemas/catalog'
 import type { ReceivePurchaseInput } from '@shared/schemas/purchases'
 import type { ClockStatus } from '@shared/schemas/clock'
+import type { CompleteSaleInput, SaveHoldInput } from '@shared/schemas/sales'
 import type { SaveSettingsInput } from '@shared/schemas/settings'
 import type { SaveSupplierInput } from '@shared/schemas/suppliers'
 
@@ -60,6 +61,13 @@ const api = {
     receive: (input: ReceivePurchaseInput) =>
       ipcRenderer.invoke(IPC.purchases.receive, input),
     catalog: () => ipcRenderer.invoke(IPC.purchases.catalog),
+  },
+  sales: {
+    catalog: () => ipcRenderer.invoke(IPC.sales.catalog),
+    complete: (input: CompleteSaleInput) => ipcRenderer.invoke(IPC.sales.complete, input),
+    listHolds: () => ipcRenderer.invoke(IPC.sales.listHolds),
+    saveHold: (input: SaveHoldInput) => ipcRenderer.invoke(IPC.sales.saveHold, input),
+    deleteHold: (id: number) => ipcRenderer.invoke(IPC.sales.deleteHold, { id }),
   },
 }
 

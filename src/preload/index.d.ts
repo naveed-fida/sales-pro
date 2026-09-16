@@ -16,6 +16,13 @@ import type {
   ReceivePurchaseInput,
 } from '@shared/schemas/purchases'
 import type { ClockStatus } from '@shared/schemas/clock'
+import type {
+  CompletedSale,
+  CompleteSaleInput,
+  HeldSale,
+  PosCatalogVariant,
+  SaveHoldInput,
+} from '@shared/schemas/sales'
 import type { AppSettings, Printer, SaveSettingsInput } from '@shared/schemas/settings'
 import type { SaveSupplierInput, Supplier } from '@shared/schemas/suppliers'
 
@@ -54,6 +61,13 @@ export type Api = {
     get: (id: number) => Promise<IpcResult<PurchaseRecord>>
     receive: (input: ReceivePurchaseInput) => Promise<IpcResult<PurchaseRecord>>
     catalog: () => Promise<IpcResult<PurchaseCatalogVariant[]>>
+  }
+  sales: {
+    catalog: () => Promise<IpcResult<PosCatalogVariant[]>>
+    complete: (input: CompleteSaleInput) => Promise<IpcResult<CompletedSale>>
+    listHolds: () => Promise<IpcResult<HeldSale[]>>
+    saveHold: (input: SaveHoldInput) => Promise<IpcResult<HeldSale>>
+    deleteHold: (id: number) => Promise<IpcResult<null>>
   }
 }
 

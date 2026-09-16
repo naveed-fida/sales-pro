@@ -55,7 +55,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { UNIT_LABELS } from '@/features/products/unit-labels'
 import { labelVariantsQueryKey, productsQueryKey } from '@/features/products/use-catalog'
 import { PURCHASE_HOTKEYS } from '@/lib/hotkeys'
-import { NumberEditDialog } from './number-edit-dialog'
+import { NumberEditDialog } from '@/components/number-edit-dialog'
 import { SupplierForm } from './supplier-form'
 import {
   purchaseCatalogQueryKey,

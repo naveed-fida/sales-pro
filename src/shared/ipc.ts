@@ -38,4 +38,11 @@ export const IPC = {
     receive: 'purchases:receive',
     catalog: 'purchases:catalog',
   },
+  sales: {
+    catalog: 'sales:catalog',
+    complete: 'sales:complete',
+    listHolds: 'sales:holds:list',
+    saveHold: 'sales:holds:save',
+    deleteHold: 'sales:holds:delete',
+  },
 } as const
