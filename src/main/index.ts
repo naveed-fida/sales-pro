@@ -2,6 +2,7 @@ import { join } from 'node:path'
 import { app, dialog, shell, BrowserWindow } from 'electron'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { closeDb } from './db/client'
+import { persistWatermarkOnQuit } from './clock'
 import { runMigrations } from './db/migrate'
 import { loadEnvFile } from './db/paths'
 import { registerIpcHandlers } from './ipc'
@@ -122,6 +123,7 @@ if (!app.requestSingleInstanceLock()) {
 
   // Close the connection cleanly so WAL is checkpointed into the main db file.
   app.on('will-quit', () => {
+    persistWatermarkOnQuit()
     closeDb()
   })
 }

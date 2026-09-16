@@ -7,6 +7,7 @@ import type {
   SaveProductInput,
 } from '@shared/schemas/catalog'
 import type { ReceivePurchaseInput } from '@shared/schemas/purchases'
+import type { ClockStatus } from '@shared/schemas/clock'
 import type { SaveSettingsInput } from '@shared/schemas/settings'
 import type { SaveSupplierInput } from '@shared/schemas/suppliers'
 
@@ -19,6 +20,18 @@ const api = {
     get: () => ipcRenderer.invoke(IPC.settings.get),
     save: (input: SaveSettingsInput) => ipcRenderer.invoke(IPC.settings.save, input),
     listPrinters: () => ipcRenderer.invoke(IPC.settings.listPrinters),
+  },
+  clock: {
+    get: () => ipcRenderer.invoke(IPC.clock.get),
+    onStatus: (listener: (status: ClockStatus) => void) => {
+      const handler = (_event: unknown, status: ClockStatus): void => {
+        listener(status)
+      }
+      ipcRenderer.on(IPC.clock.changed, handler)
+      return () => {
+        ipcRenderer.removeListener(IPC.clock.changed, handler)
+      }
+    },
   },
   categories: {
     list: () => ipcRenderer.invoke(IPC.categories.list),

@@ -1,4 +1,5 @@
 import { registerCatalogHandlers } from './catalog'
+import { registerClockHandlers, startClockWatch } from './clock'
 import { registerPurchasesHandlers } from './purchases'
 import { registerSettingsHandlers } from './settings'
 import { registerSuppliersHandlers } from './suppliers'
@@ -9,7 +10,9 @@ import { registerSuppliersHandlers } from './suppliers'
  */
 export function registerIpcHandlers(): void {
   registerSettingsHandlers()
+  registerClockHandlers()
   registerCatalogHandlers()
   registerSuppliersHandlers()
   registerPurchasesHandlers()
+  startClockWatch()
 }

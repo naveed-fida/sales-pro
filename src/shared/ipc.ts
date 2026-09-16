@@ -9,6 +9,10 @@ export const IPC = {
     save: 'settings:save',
     listPrinters: 'settings:listPrinters',
   },
+  clock: {
+    get: 'clock:get',
+    changed: 'clock:changed',
+  },
   categories: {
     list: 'categories:list',
     create: 'categories:create',

@@ -5,6 +5,7 @@ import {
   columnVisibilityFeature,
   createFilteredRowModel,
   createSortedRowModel,
+  filterFn_equals,
   filterFn_includesString,
   globalFilteringFeature,
   rowSortingFeature,
@@ -13,7 +14,7 @@ import {
   tableFeatures,
   useTable,
 } from '@tanstack/react-table'
-import { format } from 'date-fns'
+import { endOfDay, format, isAfter, isBefore, parseISO, startOfDay } from 'date-fns'
 import { formatRs } from '@shared/money'
 import type { PurchaseListItem } from '@shared/schemas/purchases'
 import {
@@ -24,6 +25,23 @@ import {
   TableRow,
 } from '@/components/ui/table'
 
+type PurchaseDateRange = {
+  from: string
+  to: string
+}
+
+function filterFn_dateRange(
+  row: { getValue: (columnId: string) => unknown },
+  columnId: string,
+  range: PurchaseDateRange,
+): boolean {
+  const raw = row.getValue(columnId)
+  const at = raw instanceof Date ? raw : new Date(String(raw))
+  if (range.from && isBefore(at, startOfDay(parseISO(range.from)))) return false
+  if (range.to && isAfter(at, endOfDay(parseISO(range.to)))) return false
+  return true
+}
+
 const purchaseTableFeatures = tableFeatures({
   columnFilteringFeature,
   columnVisibilityFeature,
@@ -33,6 +51,8 @@ const purchaseTableFeatures = tableFeatures({
   sortedRowModel: createSortedRowModel(),
   filterFns: {
     includesString: filterFn_includesString,
+    equals: filterFn_equals,
+    dateRange: filterFn_dateRange,
   },
   sortFns: {
     alphanumeric: sortFn_alphanumeric,
@@ -48,11 +68,18 @@ function createColumns(): ReturnType<(typeof columnHelper)['columns']> {
     columnHelper.accessor('purchasedAt', {
       header: 'Date',
       sortFn: 'basic',
+      filterFn: 'dateRange',
+      enableGlobalFilter: false,
       cell: ({ getValue }) => format(new Date(getValue()), 'd MMM yyyy'),
     }),
     columnHelper.accessor('supplierName', {
       header: 'Supplier',
       sortFn: 'alphanumeric',
+    }),
+    columnHelper.accessor('supplierId', {
+      header: 'Supplier id',
+      filterFn: 'equals',
+      enableGlobalFilter: false,
     }),
     columnHelper.accessor('itemCount', {
       header: 'Lines',
@@ -76,18 +103,34 @@ function createColumns(): ReturnType<(typeof columnHelper)['columns']> {
 export function PurchasesTable({
   data,
   search,
+  supplierId,
+  from,
+  to,
   onOpen,
 }: {
   data: PurchaseListItem[]
   search: string
+  supplierId: number | 'all'
+  from: string
+  to: string
   onOpen: (id: number) => void
 }): React.JSX.Element {
   const columns = useMemo(() => createColumns(), [])
+  const columnFilters = useMemo(() => {
+    const filters: Array<{ id: string; value: unknown }> = []
+    if (supplierId !== 'all') filters.push({ id: 'supplierId', value: supplierId })
+    if (from || to) filters.push({ id: 'purchasedAt', value: { from, to } })
+    return filters
+  }, [from, supplierId, to])
   const table = useTable({
     features: purchaseTableFeatures,
     columns,
     data: data.length > 0 ? data : EMPTY_PURCHASES,
-    state: { globalFilter: search },
+    state: {
+      globalFilter: search,
+      columnFilters,
+      columnVisibility: { supplierId: false },
+    },
     globalFilterFn: 'includesString',
     getColumnCanGlobalFilter: (column) =>
       column.id === 'supplierName' || column.id === 'note',
@@ -110,7 +153,7 @@ export function PurchasesTable({
         {rows.length === 0 ? (
           <TableRow>
             <TableCell colSpan={Math.max(headers.length, 1)} className="h-24 text-center">
-              No purchases match this search.
+              No purchases match these filters.
             </TableCell>
           </TableRow>
         ) : (

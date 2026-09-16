@@ -15,6 +15,7 @@ import type {
   PurchaseRecord,
   ReceivePurchaseInput,
 } from '@shared/schemas/purchases'
+import type { ClockStatus } from '@shared/schemas/clock'
 import type { AppSettings, Printer, SaveSettingsInput } from '@shared/schemas/settings'
 import type { SaveSupplierInput, Supplier } from '@shared/schemas/suppliers'
 
@@ -24,6 +25,10 @@ export type Api = {
     get: () => Promise<IpcResult<AppSettings>>
     save: (input: SaveSettingsInput) => Promise<IpcResult<AppSettings>>
     listPrinters: () => Promise<IpcResult<Printer[]>>
+  }
+  clock: {
+    get: () => Promise<IpcResult<ClockStatus>>
+    onStatus: (listener: (status: ClockStatus) => void) => () => void
   }
   categories: {
     list: () => Promise<IpcResult<Category[]>>
