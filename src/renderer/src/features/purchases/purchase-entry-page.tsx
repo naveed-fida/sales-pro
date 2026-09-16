@@ -80,6 +80,14 @@ function matchesSearch(variant: PurchaseCatalogVariant, query: string): boolean 
     .includes(query)
 }
 
+function defaultPurchaseCost(
+  items: ReceivePurchaseInput['items'],
+  fallback: number,
+): number {
+  const firstCost = Number(items[0]?.unitCostRs)
+  return Number.isFinite(firstCost) && firstCost > 0 ? firstCost : fallback
+}
+
 function PurchaseEntryForm({
   suppliers,
   variants,
@@ -163,7 +171,7 @@ function PurchaseEntryForm({
         colour: variant.colour,
         unit: variant.unit,
         quantity: 1,
-        unitCostRs: variant.avgCostRs,
+        unitCostRs: defaultPurchaseCost(current, variant.avgCostRs),
         discountRs: 0,
       })
       setSelectedIndex(current.length)
@@ -498,6 +506,7 @@ function PurchaseEntryForm({
             <table className="w-full caption-bottom text-sm">
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
+                  <TableHead className="w-10">#</TableHead>
                   <TableHead>Item</TableHead>
                   <TableHead>Qty</TableHead>
                   <TableHead>Cost</TableHead>
@@ -510,7 +519,7 @@ function PurchaseEntryForm({
                 {items.fields.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={6}
+                      colSpan={7}
                       className="h-24 text-center text-muted-foreground"
                     >
                       Search or scan to add a line.
@@ -537,6 +546,7 @@ function PurchaseEntryForm({
                         )}
                         onClick={() => setSelectedIndex(index)}
                       >
+                        <TableCell className="tabular-nums">{index + 1}.</TableCell>
                         <TableCell>
                           <p>{variantOptionLabel(item)}</p>
                           <p className="text-xs text-muted-foreground">{item.barcode}</p>

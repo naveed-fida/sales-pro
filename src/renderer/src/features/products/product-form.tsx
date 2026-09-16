@@ -52,12 +52,15 @@ import {
   productQueryKey,
 } from './use-catalog'
 
-function emptyVariant(reorderLevel: number): SaveProduct['variants'][number] {
+function emptyVariant(
+  reorderLevel: number,
+  salePriceRs = 0,
+): SaveProduct['variants'][number] {
   return {
     barcode: '',
     size: '',
     colour: '',
-    salePriceRs: 0,
+    salePriceRs,
     reorderLevel,
     isActive: true,
   }
@@ -121,6 +124,7 @@ export function ProductForm({
     handleSubmit,
     setError,
     setValue,
+    getValues,
     formState: { errors, isSubmitting },
   } = form
 
@@ -441,14 +445,25 @@ export function ProductForm({
 
         <div className="space-y-2">
           <div className="flex items-center justify-between gap-2">
-            <h3 className="text-sm font-medium">Variants</h3>
+            <h3 className="text-sm font-medium">
+              Variants
+              <span className="ml-1.5 font-normal text-muted-foreground tabular-nums">
+                {variants.fields.length}
+              </span>
+            </h3>
             <Button
               type="button"
               variant="outline"
               size="sm"
-              onClick={() =>
-                variants.append(emptyVariant(unit === 'piece' ? defaultReorderPieces : 0))
-              }
+              onClick={() => {
+                const firstPrice = Number(getValues('variants.0.salePriceRs'))
+                variants.append(
+                  emptyVariant(
+                    unit === 'piece' ? defaultReorderPieces : 0,
+                    Number.isFinite(firstPrice) && firstPrice > 0 ? firstPrice : 0,
+                  ),
+                )
+              }}
             >
               <Plus />
               Add variant
@@ -471,114 +486,128 @@ export function ProductForm({
               return (
                 <div
                   key={field.fieldId}
-                  className="grid gap-3 rounded-xl ring-1 ring-foreground/10 p-3 sm:grid-cols-6"
+                  className="flex items-start gap-3 rounded-xl p-3 ring-1 ring-foreground/10"
                 >
-                  <Field
-                    className="sm:col-span-2"
-                    data-invalid={!!variantErrors?.barcode}
-                  >
-                    <FieldLabel htmlFor={`variant-barcode-${index}`}>Barcode</FieldLabel>
-                    <Input
-                      id={`variant-barcode-${index}`}
-                      placeholder="Auto"
-                      aria-invalid={!!variantErrors?.barcode}
-                      {...register(`variants.${index}.barcode`)}
-                    />
-                    <FieldError errors={[variantErrors?.barcode]} />
-                  </Field>
-                  <Field data-invalid={!!variantErrors?.size}>
-                    <FieldLabel htmlFor={`variant-size-${index}`}>Size</FieldLabel>
-                    <Input
-                      id={`variant-size-${index}`}
-                      {...register(`variants.${index}.size`)}
-                    />
-                    <FieldError errors={[variantErrors?.size]} />
-                  </Field>
-                  <Field data-invalid={!!variantErrors?.colour}>
-                    <FieldLabel htmlFor={`variant-colour-${index}`}>Colour</FieldLabel>
-                    <Input
-                      id={`variant-colour-${index}`}
-                      {...register(`variants.${index}.colour`)}
-                    />
-                    <FieldError errors={[variantErrors?.colour]} />
-                  </Field>
-                  <Field data-invalid={!!variantErrors?.salePriceRs}>
-                    <FieldLabel htmlFor={`variant-price-${index}`}>Sale price</FieldLabel>
-                    <InputGroup>
-                      <InputGroupAddon>
-                        <InputGroupText>Rs</InputGroupText>
-                      </InputGroupAddon>
-                      <InputGroupInput
-                        id={`variant-price-${index}`}
-                        type="number"
-                        min={0}
-                        step={1}
-                        inputMode="numeric"
-                        aria-invalid={!!variantErrors?.salePriceRs}
-                        {...register(`variants.${index}.salePriceRs`)}
-                      />
-                    </InputGroup>
-                    <FieldError errors={[variantErrors?.salePriceRs]} />
-                  </Field>
-                  <Field data-invalid={!!variantErrors?.reorderLevel}>
-                    <FieldLabel htmlFor={`variant-reorder-${index}`}>
-                      Reorder at
-                    </FieldLabel>
-                    <InputGroup>
-                      <InputGroupInput
-                        id={`variant-reorder-${index}`}
-                        type="number"
-                        min={0}
-                        step={reorderStep}
-                        aria-invalid={!!variantErrors?.reorderLevel}
-                        {...register(`variants.${index}.reorderLevel`)}
-                      />
-                      <InputGroupAddon align="inline-end">
-                        <InputGroupText>{reorderSuffix}</InputGroupText>
-                      </InputGroupAddon>
-                    </InputGroup>
-                    <FieldError errors={[variantErrors?.reorderLevel]} />
-                  </Field>
-                  {record ? (
-                    <p className="text-muted-foreground sm:col-span-4 text-xs">
-                      Stock {formatQuantity(record.quantityMilli, unit)} · Cost{' '}
-                      {formatRs(record.avgCostRs)}
+                  <div className="flex w-8 shrink-0 flex-col gap-2">
+                    <span className="invisible text-sm leading-snug" aria-hidden>
+                      #
+                    </span>
+                    <p className="flex h-9 items-center text-sm font-medium tabular-nums">
+                      {index + 1}.
                     </p>
-                  ) : (
-                    <p className="text-muted-foreground sm:col-span-4 text-xs">
-                      Stock starts at zero until a purchase is received.
-                    </p>
-                  )}
-                  <div className="flex items-center justify-between gap-2 sm:col-span-2">
-                    <FieldLabel
-                      htmlFor={`variant-active-${index}`}
-                      className="flex items-center gap-2"
+                  </div>
+                  <div className="grid min-w-0 flex-1 gap-3 sm:grid-cols-6">
+                    <Field
+                      className="sm:col-span-2"
+                      data-invalid={!!variantErrors?.barcode}
                     >
-                      <Controller
-                        name={`variants.${index}.isActive`}
-                        control={control}
-                        render={({ field: activeField }) => (
-                          <Checkbox
-                            id={`variant-active-${index}`}
-                            checked={activeField.value}
-                            onCheckedChange={(checked) =>
-                              activeField.onChange(checked === true)
-                            }
-                          />
-                        )}
+                      <FieldLabel htmlFor={`variant-barcode-${index}`}>
+                        Barcode
+                      </FieldLabel>
+                      <Input
+                        id={`variant-barcode-${index}`}
+                        placeholder="Auto"
+                        aria-invalid={!!variantErrors?.barcode}
+                        {...register(`variants.${index}.barcode`)}
                       />
-                      Active
-                    </FieldLabel>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon-sm"
-                      disabled={variants.fields.length === 1}
-                      onClick={() => variants.remove(index)}
-                      aria-label="Remove variant"
-                    >
-                      <Trash2 />
-                    </Button>
+                      <FieldError errors={[variantErrors?.barcode]} />
+                    </Field>
+                    <Field data-invalid={!!variantErrors?.size}>
+                      <FieldLabel htmlFor={`variant-size-${index}`}>Size</FieldLabel>
+                      <Input
+                        id={`variant-size-${index}`}
+                        {...register(`variants.${index}.size`)}
+                      />
+                      <FieldError errors={[variantErrors?.size]} />
+                    </Field>
+                    <Field data-invalid={!!variantErrors?.colour}>
+                      <FieldLabel htmlFor={`variant-colour-${index}`}>Colour</FieldLabel>
+                      <Input
+                        id={`variant-colour-${index}`}
+                        {...register(`variants.${index}.colour`)}
+                      />
+                      <FieldError errors={[variantErrors?.colour]} />
+                    </Field>
+                    <Field data-invalid={!!variantErrors?.salePriceRs}>
+                      <FieldLabel htmlFor={`variant-price-${index}`}>
+                        Sale price
+                      </FieldLabel>
+                      <InputGroup>
+                        <InputGroupAddon>
+                          <InputGroupText>Rs</InputGroupText>
+                        </InputGroupAddon>
+                        <InputGroupInput
+                          id={`variant-price-${index}`}
+                          type="number"
+                          min={0}
+                          step={1}
+                          inputMode="numeric"
+                          aria-invalid={!!variantErrors?.salePriceRs}
+                          {...register(`variants.${index}.salePriceRs`)}
+                        />
+                      </InputGroup>
+                      <FieldError errors={[variantErrors?.salePriceRs]} />
+                    </Field>
+                    <Field data-invalid={!!variantErrors?.reorderLevel}>
+                      <FieldLabel htmlFor={`variant-reorder-${index}`}>
+                        Reorder at
+                      </FieldLabel>
+                      <InputGroup>
+                        <InputGroupInput
+                          id={`variant-reorder-${index}`}
+                          type="number"
+                          min={0}
+                          step={reorderStep}
+                          aria-invalid={!!variantErrors?.reorderLevel}
+                          {...register(`variants.${index}.reorderLevel`)}
+                        />
+                        <InputGroupAddon align="inline-end">
+                          <InputGroupText>{reorderSuffix}</InputGroupText>
+                        </InputGroupAddon>
+                      </InputGroup>
+                      <FieldError errors={[variantErrors?.reorderLevel]} />
+                    </Field>
+                    {record ? (
+                      <p className="text-muted-foreground sm:col-span-4 text-xs">
+                        Stock {formatQuantity(record.quantityMilli, unit)} · Cost{' '}
+                        {formatRs(record.avgCostRs)}
+                      </p>
+                    ) : (
+                      <p className="text-muted-foreground sm:col-span-4 text-xs">
+                        Stock starts at zero until a purchase is received.
+                      </p>
+                    )}
+                    <div className="flex items-center justify-between gap-2 sm:col-span-2">
+                      <FieldLabel
+                        htmlFor={`variant-active-${index}`}
+                        className="flex items-center gap-2"
+                      >
+                        <Controller
+                          name={`variants.${index}.isActive`}
+                          control={control}
+                          render={({ field: activeField }) => (
+                            <Checkbox
+                              id={`variant-active-${index}`}
+                              checked={activeField.value}
+                              onCheckedChange={(checked) =>
+                                activeField.onChange(checked === true)
+                              }
+                            />
+                          )}
+                        />
+                        Active
+                      </FieldLabel>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon-sm"
+                        disabled={variants.fields.length === 1}
+                        onClick={() => variants.remove(index)}
+                        aria-label="Remove variant"
+                      >
+                        <Trash2 />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               )
