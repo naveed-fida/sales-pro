@@ -38,8 +38,8 @@ import { ProductForm } from './product-form'
 import { ProductsTable } from './products-table'
 import { UNIT_LABELS } from './unit-labels'
 import {
+  invalidateAfterProductWrite,
   productQueryKey,
-  productsQueryKey,
   useCategoriesQuery,
   useProductQuery,
   useProductsQuery,
@@ -126,7 +126,7 @@ export function ProductsPage(): React.JSX.Element {
       return
     }
 
-    await queryClient.invalidateQueries({ queryKey: productsQueryKey })
+    await invalidateAfterProductWrite(queryClient)
     queryClient.removeQueries({ queryKey: productQueryKey(pendingDelete.id) })
     setPendingDelete(null)
     toast.success('Product deleted')

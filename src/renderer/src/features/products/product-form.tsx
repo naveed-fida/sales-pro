@@ -46,7 +46,11 @@ import { Textarea } from '@/components/ui/textarea'
 import { downscaleProductImage } from './downscale-image'
 import { ProductImage } from './product-image'
 import { UNIT_LABELS } from './unit-labels'
-import { categoriesQueryKey, productsQueryKey, productQueryKey } from './use-catalog'
+import {
+  categoriesQueryKey,
+  invalidateAfterProductWrite,
+  productQueryKey,
+} from './use-catalog'
 
 function emptyVariant(reorderLevel: number): SaveProduct['variants'][number] {
   return {
@@ -164,7 +168,7 @@ export function ProductForm({
         bytes: pendingBytes,
       })
       if (!imageResult.ok) {
-        await queryClient.invalidateQueries({ queryKey: productsQueryKey })
+        await invalidateAfterProductWrite(queryClient)
         queryClient.setQueryData(productQueryKey(record.id), record)
         toast.success(isNew ? 'Product created' : 'Product saved')
         toast.error(imageResult.error.message)
@@ -175,7 +179,7 @@ export function ProductForm({
     } else if (removeSaved && product?.imagePath) {
       const cleared = await window.api.products.clearImage(record.id)
       if (!cleared.ok) {
-        await queryClient.invalidateQueries({ queryKey: productsQueryKey })
+        await invalidateAfterProductWrite(queryClient)
         queryClient.setQueryData(productQueryKey(record.id), record)
         toast.success(isNew ? 'Product created' : 'Product saved')
         toast.error(cleared.error.message)
@@ -185,7 +189,7 @@ export function ProductForm({
       record = cleared.data
     }
 
-    await queryClient.invalidateQueries({ queryKey: productsQueryKey })
+    await invalidateAfterProductWrite(queryClient)
     queryClient.setQueryData(productQueryKey(record.id), record)
     toast.success(isNew ? 'Product created' : 'Product saved')
     onClose()

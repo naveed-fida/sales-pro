@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Field, FieldError, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { purchasesQueryKey } from './use-purchases'
 import { supplierQueryKey, suppliersQueryKey } from './use-suppliers'
 
 export function SupplierForm({
@@ -74,7 +75,10 @@ export function SupplierForm({
       return
     }
 
-    await queryClient.invalidateQueries({ queryKey: suppliersQueryKey })
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: suppliersQueryKey }),
+      queryClient.invalidateQueries({ queryKey: purchasesQueryKey }),
+    ])
     if (result.data.id) {
       queryClient.setQueryData(supplierQueryKey(result.data.id), result.data)
     }

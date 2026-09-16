@@ -52,6 +52,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Textarea } from '@/components/ui/textarea'
+import { posCatalogQueryKey } from '@/features/pos/use-pos'
 import { UNIT_LABELS } from '@/features/products/unit-labels'
 import { labelVariantsQueryKey, productsQueryKey } from '@/features/products/use-catalog'
 import { reportsQueryKey } from '@/features/reports/use-reports'
@@ -215,6 +216,7 @@ function PurchaseEntryForm({
       queryClient.invalidateQueries({ queryKey: productsQueryKey }),
       queryClient.invalidateQueries({ queryKey: labelVariantsQueryKey }),
       queryClient.invalidateQueries({ queryKey: purchaseCatalogQueryKey }),
+      queryClient.invalidateQueries({ queryKey: posCatalogQueryKey }),
     ])
     toast.success('Purchase received')
     navigate('/purchases')

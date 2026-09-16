@@ -31,6 +31,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { SupplierForm } from './supplier-form'
+import { purchasesQueryKey } from './use-purchases'
 import { supplierQueryKey, suppliersQueryKey, useSuppliersQuery } from './use-suppliers'
 
 export function SuppliersDialog({
@@ -68,7 +69,10 @@ export function SuppliersDialog({
       toast.error(result.error.message)
       return
     }
-    await queryClient.invalidateQueries({ queryKey: suppliersQueryKey })
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: suppliersQueryKey }),
+      queryClient.invalidateQueries({ queryKey: purchasesQueryKey }),
+    ])
     queryClient.removeQueries({ queryKey: supplierQueryKey(pendingDelete.id) })
     setPendingDelete(null)
     toast.success('Supplier deleted')

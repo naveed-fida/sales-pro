@@ -1,10 +1,13 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, type QueryClient } from '@tanstack/react-query'
 import type {
   Category,
   LabelVariant,
   ProductListItem,
   ProductRecord,
 } from '@shared/schemas/catalog'
+import { posCatalogQueryKey } from '@/features/pos/use-pos'
+import { purchaseCatalogQueryKey } from '@/features/purchases/use-purchases'
+import { reportsQueryKey } from '@/features/reports/use-reports'
 
 export const categoriesQueryKey = ['categories'] as const
 export const productsQueryKey = ['products'] as const
@@ -12,6 +15,17 @@ export const labelVariantsQueryKey = ['products', 'variants'] as const
 
 export function productQueryKey(id: number): readonly ['products', number] {
   return ['products', id] as const
+}
+
+export async function invalidateAfterProductWrite(
+  queryClient: QueryClient,
+): Promise<void> {
+  await Promise.all([
+    queryClient.invalidateQueries({ queryKey: productsQueryKey }),
+    queryClient.invalidateQueries({ queryKey: posCatalogQueryKey }),
+    queryClient.invalidateQueries({ queryKey: purchaseCatalogQueryKey }),
+    queryClient.invalidateQueries({ queryKey: reportsQueryKey }),
+  ])
 }
 
 export function useCategoriesQuery(): ReturnType<typeof useQuery<Category[]>> {
