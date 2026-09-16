@@ -1,5 +1,5 @@
 import { join } from 'node:path'
-import { app, dialog, shell, BrowserWindow } from 'electron'
+import { app, dialog, screen, shell, BrowserWindow } from 'electron'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import { closeDb } from './db/client'
 import { persistWatermarkOnQuit } from './clock'
@@ -28,9 +28,19 @@ loadEnvFile(app.getAppPath())
 let mainWindow: BrowserWindow | null = null
 
 function createWindow(): void {
+  const {
+    x,
+    y,
+    width: workWidth,
+    height: workHeight,
+  } = screen.getPrimaryDisplay().workArea
+  const width = 1250
+
   mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
+    x: x + Math.round((workWidth - width) / 2),
+    y,
+    width,
+    height: workHeight,
     minWidth: 940,
     minHeight: 600,
     show: false,
