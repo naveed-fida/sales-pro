@@ -7,6 +7,7 @@ import {
   products,
   purchaseItems,
   purchases,
+  customers,
   returnExchangeItems,
   returnItems,
   saleItems,
@@ -28,6 +29,7 @@ export function clearBusinessData(db: AppDatabase, sqlite: SqliteConnection): vo
     tx.delete(salesReturns).run()
     tx.delete(saleItems).run()
     tx.delete(sales).run()
+    tx.delete(customers).run()
     tx.delete(heldSaleItems).run()
     tx.delete(heldSales).run()
     tx.delete(purchaseItems).run()

@@ -71,7 +71,7 @@ export function SalesPage(): React.JSX.Element {
             setSearch(event.target.value)
             setPage(1)
           }}
-          placeholder="Search bill number or phone"
+          placeholder="Search bill number, name or phone"
         />
         <Select
           value={status}

@@ -40,6 +40,9 @@ export const IPC = {
     receive: 'purchases:receive',
     catalog: 'purchases:catalog',
   },
+  customers: {
+    search: 'customers:search',
+  },
   sales: {
     catalog: 'sales:catalog',
     complete: 'sales:complete',

@@ -51,7 +51,8 @@ export function HoldRecallDialog({
                   onClick={() => onRecall(hold)}
                 >
                   <span className="font-medium">
-                    {hold.phone || 'Walk-in'} · {formatRs(hold.totalRs)}
+                    {hold.customerName || hold.phone || 'Walk-in'} ·{' '}
+                    {formatRs(hold.totalRs)}
                   </span>
                   <span className="text-xs text-muted-foreground">
                     {format(new Date(hold.createdAt), 'd MMM, h:mm a')} · {hold.itemCount}{' '}

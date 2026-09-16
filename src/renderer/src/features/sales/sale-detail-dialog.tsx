@@ -109,6 +109,9 @@ export function SaleDetailDialog({
               </table>
             </div>
             <div className="flex flex-col items-end gap-1 text-sm">
+              {saleQuery.data.customerName ? (
+                <p className="text-muted-foreground">{saleQuery.data.customerName}</p>
+              ) : null}
               {saleQuery.data.phone ? (
                 <p className="text-muted-foreground">Phone {saleQuery.data.phone}</p>
               ) : null}

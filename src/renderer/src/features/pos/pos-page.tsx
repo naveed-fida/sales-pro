@@ -1,14 +1,16 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import { useFieldArray, useForm, useWatch, type FieldPath } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQueryClient } from '@tanstack/react-query'
 import { Trash2 } from 'lucide-react'
 import { useHotkeys } from 'react-hotkeys-hook'
 import { toast } from 'sonner'
+import { useDebounceValue } from 'usehooks-ts'
 import { cn } from 'cn'
 import { lineTotalRs } from '@shared/cost'
 import { formatRs } from '@shared/money'
 import { formatQuantity, fromMilli, toMilli } from '@shared/quantity'
+import type { CustomerMatch } from '@shared/schemas/customers'
 import {
   completeSaleSchema,
   type CompleteSale,
@@ -51,6 +53,7 @@ import { HoldRecallDialog } from './hold-recall-dialog'
 import {
   holdsQueryKey,
   posCatalogQueryKey,
+  useCustomerSearchQuery,
   useHoldsQuery,
   usePosCatalogQuery,
 } from './use-pos'
@@ -62,8 +65,10 @@ type LineEdit =
   | { kind: 'billDiscount' }
   | { kind: 'tendered' }
 
+type CustomerField = 'name' | 'phone'
+
 function emptySale(): CompleteSaleInput {
-  return { phone: '', discountRs: 0, tenderedRs: 0, items: [] }
+  return { phone: '', customerName: '', discountRs: 0, tenderedRs: 0, items: [] }
 }
 
 function matchesSearch(variant: PosCatalogVariant, query: string): boolean {
@@ -77,6 +82,49 @@ function matchesSearch(variant: PosCatalogVariant, query: string): boolean {
 function quantityFromMilli(milli: number, unit: PosCatalogVariant['unit']): number {
   const display = fromMilli(milli)
   return unit === 'piece' ? Math.round(display) : display
+}
+
+function CustomerMatchList({
+  matches,
+  highlightIndex,
+  primary,
+  onHighlight,
+  onPick,
+}: {
+  matches: CustomerMatch[]
+  highlightIndex: number
+  primary: CustomerField
+  onHighlight: (index: number) => void
+  onPick: (match: CustomerMatch) => void
+}): React.JSX.Element {
+  return (
+    <ul className="absolute z-20 mt-1 max-h-48 w-full overflow-auto rounded-xl bg-popover p-1 text-sm shadow-md ring-1 ring-foreground/10">
+      {matches.map((match, index) => {
+        const title = primary === 'name' ? match.name || match.phone : match.phone
+        const subtitle =
+          primary === 'name' ? (match.name ? match.phone : null) : match.name || null
+        return (
+          <li key={match.id}>
+            <button
+              type="button"
+              className={cn(
+                'flex w-full flex-col items-start rounded-lg px-3 py-2 text-left',
+                index === highlightIndex && 'bg-muted',
+              )}
+              onMouseDown={(event) => event.preventDefault()}
+              onMouseEnter={() => onHighlight(index)}
+              onClick={() => onPick(match)}
+            >
+              <span>{title}</span>
+              {subtitle ? (
+                <span className="text-xs text-muted-foreground">{subtitle}</span>
+              ) : null}
+            </button>
+          </li>
+        )
+      })}
+    </ul>
+  )
 }
 
 function itemsFromHold(hold: HeldSale): CompleteSaleInput['items'] {
@@ -97,9 +145,12 @@ function PosSale({ variants }: { variants: PosCatalogVariant[] }): React.JSX.Ele
   const queryClient = useQueryClient()
   const holdsQuery = useHoldsQuery()
   const searchRef = useRef<HTMLInputElement>(null)
+  const nameRef = useRef<HTMLInputElement>(null)
   const phoneRef = useRef<HTMLInputElement>(null)
   const [search, setSearch] = useState('')
   const [highlight, setHighlight] = useState(0)
+  const [customerField, setCustomerField] = useState<CustomerField | null>(null)
+  const [customerHighlight, setCustomerHighlight] = useState(0)
   const [selectedIndexRaw, setSelectedIndex] = useState(0)
   const [lineEdit, setLineEdit] = useState<LineEdit | null>(null)
   const [recallOpen, setRecallOpen] = useState(false)
@@ -129,6 +180,20 @@ function PosSale({ variants }: { variants: PosCatalogVariant[] }): React.JSX.Ele
   const discountRs = useWatch({ control, name: 'discountRs' }) ?? 0
   const tenderedRs = useWatch({ control, name: 'tenderedRs' }) ?? 0
   const phone = useWatch({ control, name: 'phone' }) ?? ''
+  const customerName = useWatch({ control, name: 'customerName' }) ?? ''
+  const customerQuery =
+    customerField === 'name' ? customerName : customerField === 'phone' ? phone : ''
+  const [debouncedCustomerQuery] = useDebounceValue(customerQuery, 200)
+  const customerSearchQuery = useCustomerSearchQuery(
+    debouncedCustomerQuery,
+    customerField !== null,
+  )
+  const customerMatches = customerSearchQuery.data ?? []
+  const customerListOpen = customerField !== null && customerMatches.length > 0
+  const customerHighlightIndex =
+    customerMatches.length === 0
+      ? 0
+      : Math.min(customerHighlight, customerMatches.length - 1)
   const selectedIndex =
     items.fields.length === 0 ? 0 : Math.min(selectedIndexRaw, items.fields.length - 1)
   const query = search.trim().toLowerCase()
@@ -173,6 +238,33 @@ function PosSale({ variants }: { variants: PosCatalogVariant[] }): React.JSX.Ele
   useEffect(() => {
     searchRef.current?.focus()
   }, [])
+
+  function pickCustomer(match: (typeof customerMatches)[number]): void {
+    setValue('phone', match.phone, { shouldDirty: true, shouldValidate: true })
+    setValue('customerName', match.name, { shouldDirty: true })
+    setCustomerField(null)
+  }
+
+  function handleCustomerKeyDown(event: KeyboardEvent<HTMLInputElement>): void {
+    if (!customerListOpen) return
+    if (event.key === 'ArrowDown') {
+      event.preventDefault()
+      setCustomerHighlight((current) => Math.min(current + 1, customerMatches.length - 1))
+    }
+    if (event.key === 'ArrowUp') {
+      event.preventDefault()
+      setCustomerHighlight((current) => Math.max(current - 1, 0))
+    }
+    if (event.key === 'Enter') {
+      event.preventDefault()
+      const picked = customerMatches[customerHighlightIndex]
+      if (picked) pickCustomer(picked)
+    }
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      setCustomerField(null)
+    }
+  }
 
   function focusSearch(): void {
     searchRef.current?.focus()
@@ -268,6 +360,7 @@ function PosSale({ variants }: { variants: PosCatalogVariant[] }): React.JSX.Ele
     if ((values.items ?? []).length === 0) return false
     const result = await window.api.sales.saveHold({
       phone: values.phone ?? '',
+      customerName: values.customerName ?? '',
       note: '',
       discountRs: Number(values.discountRs) || 0,
       items: values.items,
@@ -288,6 +381,7 @@ function PosSale({ variants }: { variants: PosCatalogVariant[] }): React.JSX.Ele
     }
     reset({
       phone: hold.phone ?? '',
+      customerName: hold.customerName ?? '',
       discountRs: hold.discountRs,
       tenderedRs: 0,
       items: itemsFromHold(hold),
@@ -554,7 +648,12 @@ function PosSale({ variants }: { variants: PosCatalogVariant[] }): React.JSX.Ele
     (event) => {
       if (blocked) return
       const target = event.target
-      if (target instanceof HTMLInputElement && target === phoneRef.current) return
+      if (
+        target instanceof HTMLInputElement &&
+        (target === phoneRef.current || target === nameRef.current)
+      ) {
+        return
+      }
       if (
         target instanceof HTMLInputElement &&
         target === searchRef.current &&
@@ -572,7 +671,12 @@ function PosSale({ variants }: { variants: PosCatalogVariant[] }): React.JSX.Ele
     (event) => {
       if (blocked) return
       const target = event.target
-      if (target instanceof HTMLInputElement && target === phoneRef.current) return
+      if (
+        target instanceof HTMLInputElement &&
+        (target === phoneRef.current || target === nameRef.current)
+      ) {
+        return
+      }
       if (
         target instanceof HTMLInputElement &&
         target === searchRef.current &&
@@ -586,6 +690,7 @@ function PosSale({ variants }: { variants: PosCatalogVariant[] }): React.JSX.Ele
     { enableOnFormTags: true },
   )
 
+  const nameRegister = register('customerName')
   const phoneRegister = register('phone')
 
   return (
@@ -788,24 +893,80 @@ function PosSale({ variants }: { variants: PosCatalogVariant[] }): React.JSX.Ele
       </div>
 
       <aside className="flex w-full shrink-0 flex-col gap-4 border-t p-6 lg:w-80 lg:border-t-0 lg:border-l">
+        <Field data-invalid={!!errors.customerName}>
+          <FieldLabel htmlFor="pos-customer-name">Name</FieldLabel>
+          <div className="relative">
+            <Input
+              id="pos-customer-name"
+              ref={(element) => {
+                nameRef.current = element
+                nameRegister.ref(element)
+              }}
+              autoComplete="off"
+              maxLength={120}
+              placeholder="Optional"
+              aria-invalid={!!errors.customerName}
+              name={nameRegister.name}
+              onChange={(event) => {
+                void nameRegister.onChange(event)
+                setCustomerHighlight(0)
+              }}
+              onFocus={() => setCustomerField('name')}
+              onBlur={(event) => {
+                void nameRegister.onBlur(event)
+                setCustomerField((current) => (current === 'name' ? null : current))
+              }}
+              onKeyDown={handleCustomerKeyDown}
+            />
+            {customerListOpen && customerField === 'name' ? (
+              <CustomerMatchList
+                matches={customerMatches}
+                highlightIndex={customerHighlightIndex}
+                primary="name"
+                onHighlight={setCustomerHighlight}
+                onPick={pickCustomer}
+              />
+            ) : null}
+          </div>
+          <FieldError errors={[errors.customerName]} />
+        </Field>
         <Field data-invalid={!!errors.phone}>
           <FieldLabel htmlFor="pos-phone">Phone</FieldLabel>
-          <Input
-            id="pos-phone"
-            ref={(element) => {
-              phoneRef.current = element
-              phoneRegister.ref(element)
-            }}
-            type="tel"
-            inputMode="tel"
-            autoComplete="off"
-            maxLength={20}
-            placeholder="Optional"
-            aria-invalid={!!errors.phone}
-            name={phoneRegister.name}
-            onChange={phoneRegister.onChange}
-            onBlur={phoneRegister.onBlur}
-          />
+          <div className="relative">
+            <Input
+              id="pos-phone"
+              ref={(element) => {
+                phoneRef.current = element
+                phoneRegister.ref(element)
+              }}
+              type="tel"
+              inputMode="tel"
+              autoComplete="off"
+              maxLength={20}
+              placeholder="Optional"
+              aria-invalid={!!errors.phone}
+              name={phoneRegister.name}
+              onChange={(event) => {
+                void phoneRegister.onChange(event)
+                setCustomerHighlight(0)
+              }}
+              onFocus={() => setCustomerField('phone')}
+              onBlur={(event) => {
+                void phoneRegister.onBlur(event)
+                setCustomerField((current) => (current === 'phone' ? null : current))
+              }}
+              onKeyDown={handleCustomerKeyDown}
+            />
+            {customerListOpen && customerField === 'phone' ? (
+              <CustomerMatchList
+                matches={customerMatches}
+                highlightIndex={customerHighlightIndex}
+                primary="phone"
+                onHighlight={setCustomerHighlight}
+                onPick={pickCustomer}
+              />
+            ) : null}
+          </div>
           <FieldError errors={[errors.phone]} />
         </Field>
 
@@ -1019,7 +1180,7 @@ function PosSale({ variants }: { variants: PosCatalogVariant[] }): React.JSX.Ele
             <AlertDialogTitle>Discard this hold?</AlertDialogTitle>
             <AlertDialogDescription>
               {pendingDiscard
-                ? `${pendingDiscard.phone || 'Walk-in'} · ${formatRs(pendingDiscard.totalRs)}. You cannot undo it.`
+                ? `${pendingDiscard.customerName || pendingDiscard.phone || 'Walk-in'} · ${formatRs(pendingDiscard.totalRs)}. You cannot undo it.`
                 : 'You cannot undo it.'}
             </AlertDialogDescription>
           </AlertDialogHeader>

@@ -8,6 +8,7 @@ import type {
 } from '@shared/schemas/catalog'
 import type { ClockStatus } from '@shared/schemas/clock'
 import type { SaveExpenseInput } from '@shared/schemas/expenses'
+import type { SearchCustomersInput } from '@shared/schemas/customers'
 import type { ReceivePurchaseInput } from '@shared/schemas/purchases'
 import type { ReportRangeInput } from '@shared/schemas/reports'
 import type { CompleteReturnInput, LookupReturnInput } from '@shared/schemas/returns'
@@ -72,6 +73,10 @@ const api = {
     receive: (input: ReceivePurchaseInput) =>
       ipcRenderer.invoke(IPC.purchases.receive, input),
     catalog: () => ipcRenderer.invoke(IPC.purchases.catalog),
+  },
+  customers: {
+    search: (input: SearchCustomersInput) =>
+      ipcRenderer.invoke(IPC.customers.search, input),
   },
   sales: {
     catalog: () => ipcRenderer.invoke(IPC.sales.catalog),

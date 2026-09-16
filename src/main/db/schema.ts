@@ -68,6 +68,18 @@ export const productVariants = sqliteTable(
   ],
 )
 
+export const customers = sqliteTable('customers', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull().default(''),
+  phone: text('phone').notNull().unique(),
+  createdAt: integer('created_at', { mode: 'timestamp' })
+    .notNull()
+    .default(createdAtDefault),
+  updatedAt: integer('updated_at', { mode: 'timestamp' })
+    .notNull()
+    .default(createdAtDefault),
+})
+
 export const suppliers = sqliteTable(
   'suppliers',
   {
@@ -130,6 +142,7 @@ export const sales = sqliteTable(
   {
     id: integer('id').primaryKey({ autoIncrement: true }),
     billNo: integer('bill_no').notNull().unique(),
+    customerId: integer('customer_id').references(() => customers.id),
     phone: text('phone'),
     status: text('status', {
       enum: ['completed', 'partially_returned', 'returned'],
@@ -148,6 +161,7 @@ export const sales = sqliteTable(
     index('sales_bill_no_idx').on(table.billNo),
     index('sales_created_at_idx').on(table.createdAt),
     index('sales_phone_idx').on(table.phone),
+    index('sales_customer_id_idx').on(table.customerId),
   ],
 )
 
@@ -178,6 +192,7 @@ export const heldSales = sqliteTable(
   {
     id: integer('id').primaryKey({ autoIncrement: true }),
     phone: text('phone'),
+    customerName: text('customer_name'),
     note: text('note'),
     discountRs: integer('discount_rs').notNull().default(0),
     createdAt: integer('created_at', { mode: 'timestamp' })

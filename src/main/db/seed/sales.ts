@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { toMilli } from '../../../shared/quantity.ts'
 import {
+  customers,
   heldSaleItems,
   heldSales,
   productVariants,
@@ -34,6 +35,27 @@ const PHONES = [
   '0333 777 8899',
   '0345 121 3434',
 ] as const
+
+const CUSTOMER_NAMES: Record<(typeof PHONES)[number], string> = {
+  '0300 111 2233': 'Ayesha Khan',
+  '0321 444 5566': 'Bilal Ahmed',
+  '0333 777 8899': 'Sana Malik',
+  '0345 121 3434': 'Omar Sheikh',
+}
+
+function ensureCustomer(
+  db: Parameters<Parameters<AppDatabase['transaction']>[0]>[0],
+  phone: string,
+): number {
+  const existing = db.select().from(customers).where(eq(customers.phone, phone)).get()
+  if (existing) return existing.id
+  const name = CUSTOMER_NAMES[phone as (typeof PHONES)[number]] ?? ''
+  return db
+    .insert(customers)
+    .values({ phone, name })
+    .returning({ id: customers.id })
+    .get().id
+}
 
 const NAMED_SALES: SeedSale[] = [
   {
@@ -242,10 +264,13 @@ function completeSeedSale(db: AppDatabase, billNo: number, sale: SeedSale): void
     const totalRs = subtotal - discountRs
     const tenderedRs = cashTendered(totalRs)
 
+    const customerId = sale.phone ? ensureCustomer(tx, sale.phone) : null
+
     const inserted = tx
       .insert(sales)
       .values({
         billNo,
+        customerId,
         phone: sale.phone ?? null,
         discountRs,
         totalRs,
@@ -307,6 +332,9 @@ function seedHolds(db: AppDatabase): number {
         .insert(heldSales)
         .values({
           phone: hold.phone ?? null,
+          customerName: hold.phone
+            ? (CUSTOMER_NAMES[hold.phone as (typeof PHONES)[number]] ?? null)
+            : null,
           note: hold.note,
           discountRs: 0,
         })

@@ -11,6 +11,7 @@ import type {
 } from '@shared/schemas/catalog'
 import type { ClockStatus } from '@shared/schemas/clock'
 import type { Expense, SaveExpenseInput } from '@shared/schemas/expenses'
+import type { CustomerMatch, SearchCustomersInput } from '@shared/schemas/customers'
 import type {
   PurchaseCatalogVariant,
   PurchaseListItem,
@@ -82,6 +83,9 @@ export type Api = {
     get: (id: number) => Promise<IpcResult<PurchaseRecord>>
     receive: (input: ReceivePurchaseInput) => Promise<IpcResult<PurchaseRecord>>
     catalog: () => Promise<IpcResult<PurchaseCatalogVariant[]>>
+  }
+  customers: {
+    search: (input: SearchCustomersInput) => Promise<IpcResult<CustomerMatch[]>>
   }
   sales: {
     catalog: () => Promise<IpcResult<PosCatalogVariant[]>>

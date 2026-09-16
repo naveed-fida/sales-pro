@@ -94,6 +94,7 @@ function refineCart(
 export const completeSaleSchema = z
   .object({
     phone: z.string().trim().max(20, 'Phone is too long'),
+    customerName: z.string().trim().max(120, 'Name is too long'),
     discountRs: z.coerce
       .number()
       .int('Whole rupees only')
@@ -111,6 +112,7 @@ export const completeSaleSchema = z
 export const saveHoldSchema = z
   .object({
     phone: z.string().trim().max(20, 'Phone is too long'),
+    customerName: z.string().trim().max(120, 'Name is too long'),
     note: z.string().trim().max(500, 'Note is too long'),
     discountRs: z.coerce
       .number()
@@ -141,6 +143,7 @@ export const heldSaleItemSchema = z.object({
 export const heldSaleSchema = z.object({
   id: z.number().int().positive(),
   phone: z.string().nullable(),
+  customerName: z.string().nullable(),
   note: z.string().nullable(),
   discountRs: z.number().int(),
   createdAt: z.coerce.date(),
@@ -181,6 +184,7 @@ export const saleListItemSchema = z.object({
   id: z.number().int().positive(),
   billNo: z.number().int().positive(),
   phone: z.string().nullable(),
+  customerName: z.string().nullable(),
   status: z.enum(saleStatus),
   createdAt: z.coerce.date(),
   itemCount: z.number().int().nonnegative(),

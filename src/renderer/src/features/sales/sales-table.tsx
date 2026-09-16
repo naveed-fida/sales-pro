@@ -48,9 +48,23 @@ function createColumns(): ReturnType<(typeof columnHelper)['columns']> {
       cell: ({ getValue }) => format(new Date(getValue()), 'd MMM yyyy, h:mm a'),
     }),
     columnHelper.accessor('phone', {
-      header: 'Phone',
+      header: 'Customer',
       sortFn: 'alphanumeric',
-      cell: ({ getValue }) => getValue() || '—',
+      cell: ({ row }) => {
+        const name = row.original.customerName
+        const phone = row.original.phone
+        if (!name && !phone) return '—'
+        return (
+          <div>
+            {name ? <p>{name}</p> : null}
+            {phone ? (
+              <p className={name ? 'text-xs text-muted-foreground' : undefined}>
+                {phone}
+              </p>
+            ) : null}
+          </div>
+        )
+      },
     }),
     columnHelper.accessor('itemCount', {
       header: 'Lines',

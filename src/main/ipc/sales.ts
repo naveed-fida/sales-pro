@@ -36,7 +36,9 @@ import {
 import { printReceipt } from '../receipt'
 import { getDb } from '../db/client'
 import { loadSettings } from './settings'
+import { upsertCustomer } from './customers'
 import {
+  customers,
   heldSaleItems,
   heldSales,
   productVariants,
@@ -127,6 +129,7 @@ function listHolds(): HeldSale[] {
     return {
       id: row.id,
       phone: row.phone,
+      customerName: row.customerName,
       note: row.note,
       discountRs: row.discountRs,
       createdAt: row.createdAt,
@@ -139,6 +142,7 @@ function listHolds(): HeldSale[] {
 
 function saveHold(input: {
   phone: string
+  customerName: string
   note: string
   discountRs: number
   items: Array<{
@@ -153,6 +157,7 @@ function saveHold(input: {
       .insert(heldSales)
       .values({
         phone: input.phone || null,
+        customerName: input.customerName || null,
         note: input.note || null,
         discountRs: input.discountRs,
       })
@@ -186,6 +191,7 @@ function deleteHold(id: number): void {
 
 function completeSale(input: {
   phone: string
+  customerName: string
   discountRs: number
   tenderedRs: number
   items: Array<{
@@ -248,11 +254,15 @@ function completeSale(input: {
     const subtotal = prepared.reduce((sum, line) => sum + line.lineTotalRs, 0)
     const totalRs = subtotal - input.discountRs
     const changeRs = input.tenderedRs - totalRs
+    const customerId = input.phone
+      ? upsertCustomer(tx, input.phone, input.customerName)
+      : null
 
     const inserted = tx
       .insert(sales)
       .values({
         billNo,
+        customerId,
         phone: input.phone || null,
         discountRs: input.discountRs,
         totalRs,
@@ -335,6 +345,8 @@ function listSales(input: ListSalesInput): SaleListPage {
     const searchFilter = or(
       sql`cast(${sales.billNo} as text) like ${pattern}`,
       like(sales.phone, pattern),
+      like(customers.phone, pattern),
+      like(customers.name, pattern),
     )
     if (searchFilter) conditions.push(searchFilter)
   }
@@ -343,10 +355,28 @@ function listSales(input: ListSalesInput): SaleListPage {
   if (input.status !== 'all') conditions.push(eq(sales.status, input.status))
   const filter = conditions.length > 0 ? and(...conditions) : undefined
 
-  const total = db.select({ total: count() }).from(sales).where(filter).get()?.total ?? 0
+  const total =
+    db
+      .select({ total: count() })
+      .from(sales)
+      .leftJoin(customers, eq(sales.customerId, customers.id))
+      .where(filter)
+      .get()?.total ?? 0
   const saleRows = db
-    .select()
+    .select({
+      id: sales.id,
+      billNo: sales.billNo,
+      phone: sales.phone,
+      customerName: customers.name,
+      status: sales.status,
+      createdAt: sales.createdAt,
+      discountRs: sales.discountRs,
+      totalRs: sales.totalRs,
+      tenderedRs: sales.tenderedRs,
+      changeRs: sales.changeRs,
+    })
     .from(sales)
+    .leftJoin(customers, eq(sales.customerId, customers.id))
     .where(filter)
     .orderBy(desc(sales.createdAt), desc(sales.id))
     .limit(SALES_PAGE_SIZE)
@@ -369,6 +399,7 @@ function listSales(input: ListSalesInput): SaleListPage {
       id: row.id,
       billNo: row.billNo,
       phone: row.phone,
+      customerName: row.customerName || null,
       status: row.status,
       createdAt: row.createdAt,
       itemCount: (itemsBySale[String(row.id)] ?? []).length,
@@ -385,7 +416,23 @@ function listSales(input: ListSalesInput): SaleListPage {
 
 function loadSale(id: number): SaleRecord | undefined {
   const db = getDb()
-  const row = db.select().from(sales).where(eq(sales.id, id)).get()
+  const row = db
+    .select({
+      id: sales.id,
+      billNo: sales.billNo,
+      phone: sales.phone,
+      customerName: customers.name,
+      status: sales.status,
+      createdAt: sales.createdAt,
+      discountRs: sales.discountRs,
+      totalRs: sales.totalRs,
+      tenderedRs: sales.tenderedRs,
+      changeRs: sales.changeRs,
+    })
+    .from(sales)
+    .leftJoin(customers, eq(sales.customerId, customers.id))
+    .where(eq(sales.id, id))
+    .get()
   if (!row) return undefined
 
   const items = db
@@ -413,6 +460,7 @@ function loadSale(id: number): SaleRecord | undefined {
     id: row.id,
     billNo: row.billNo,
     phone: row.phone,
+    customerName: row.customerName || null,
     status: row.status,
     createdAt: row.createdAt,
     itemCount: items.length,

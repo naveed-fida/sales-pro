@@ -20,6 +20,7 @@ export function ReceiptDocument({
     <ReceiptFrame settings={settings}>
       <p>Bill {sale.billNo}</p>
       <p>{format(new Date(sale.createdAt), 'd MMM yyyy, h:mm a')}</p>
+      {sale.customerName ? <p>{sale.customerName}</p> : null}
       {sale.phone ? <p>Phone {sale.phone}</p> : null}
 
       <div className="my-2 border-t border-dashed border-black" />
