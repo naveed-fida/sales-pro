@@ -376,9 +376,7 @@ export function ReturnEntryPage(): React.JSX.Element {
       const printed = await window.api.returns.print(result.data.id)
       if (!printed.ok) toast.error(printed.error.message)
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : 'Could not print the receipt.',
-      )
+      toast.error(error instanceof Error ? error.message : 'Could not print the receipt.')
     }
   }
 

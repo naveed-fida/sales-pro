@@ -28,7 +28,12 @@ type SeedSale = {
   items: SeedSaleLine[]
 }
 
-const PHONES = ['0300 111 2233', '0321 444 5566', '0333 777 8899', '0345 121 3434'] as const
+const PHONES = [
+  '0300 111 2233',
+  '0321 444 5566',
+  '0333 777 8899',
+  '0345 121 3434',
+] as const
 
 const NAMED_SALES: SeedSale[] = [
   {
@@ -72,7 +77,9 @@ const NAMED_SALES: SeedSale[] = [
     minute: 0,
     phone: PHONES[2],
     discountRs: 200,
-    items: [{ productName: "Men's Shalwar Kameez", size: 'L', colour: 'Cream', quantity: 1 }],
+    items: [
+      { productName: "Men's Shalwar Kameez", size: 'L', colour: 'Cream', quantity: 1 },
+    ],
   },
   {
     daysAgo: 11,
@@ -88,7 +95,9 @@ const NAMED_SALES: SeedSale[] = [
     hour: 17,
     minute: 25,
     phone: PHONES[3],
-    items: [{ productName: 'Ladies Pret Kurti', size: 'M', colour: 'Black', quantity: 2 }],
+    items: [
+      { productName: 'Ladies Pret Kurti', size: 'M', colour: 'Black', quantity: 2 },
+    ],
   },
   {
     daysAgo: 5,
@@ -185,11 +194,7 @@ function generatedSales(): SeedSale[] {
   return bills
 }
 
-function completeSeedSale(
-  db: AppDatabase,
-  billNo: number,
-  sale: SeedSale,
-): void {
+function completeSeedSale(db: AppDatabase, billNo: number, sale: SeedSale): void {
   const createdAt = shopTimeDaysAgo(sale.daysAgo, sale.hour, sale.minute)
   const discountRs = sale.discountRs ?? 0
 

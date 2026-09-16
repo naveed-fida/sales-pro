@@ -1,7 +1,13 @@
 import { eq } from 'drizzle-orm'
 import { roundRs } from '../../../shared/money.ts'
 import { toMilli } from '../../../shared/quantity.ts'
-import { productVariants, purchaseItems, purchases, stockMovements, suppliers } from '../schema.ts'
+import {
+  productVariants,
+  purchaseItems,
+  purchases,
+  stockMovements,
+  suppliers,
+} from '../schema.ts'
 import type { AppDatabase } from '../sqlite.ts'
 import { SEED_PRODUCTS } from './catalog.ts'
 import { quantityCostRs, weightedAverageCostRs } from './cost.ts'
