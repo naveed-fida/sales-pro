@@ -51,4 +51,8 @@ export const IPC = {
   receipt: {
     ready: 'receipt:ready',
   },
+  returns: {
+    lookup: 'returns:lookup',
+    complete: 'returns:complete',
+  },
 } as const

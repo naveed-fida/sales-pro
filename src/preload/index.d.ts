@@ -17,6 +17,12 @@ import type {
 } from '@shared/schemas/purchases'
 import type { ClockStatus } from '@shared/schemas/clock'
 import type {
+  CompletedReturn,
+  CompleteReturnInput,
+  LookupReturnInput,
+  ReturnBill,
+} from '@shared/schemas/returns'
+import type {
   CompletedSale,
   CompleteSaleInput,
   HeldSale,
@@ -78,6 +84,10 @@ export type Api = {
   }
   receipt: {
     ready: (result: ReceiptReady) => void
+  }
+  returns: {
+    lookup: (input: LookupReturnInput) => Promise<IpcResult<ReturnBill>>
+    complete: (input: CompleteReturnInput) => Promise<IpcResult<CompletedReturn>>
   }
 }
 

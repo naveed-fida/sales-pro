@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -14,29 +14,6 @@ import {
 import { Field, FieldError, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 
-const quantitySchema = z.object({
-  value: z.coerce
-    .number()
-    .positive('Must be more than zero')
-    .max(1_000_000, 'That number is too large'),
-})
-
-const pieceQuantitySchema = z.object({
-  value: z.coerce
-    .number()
-    .int('Whole pieces only')
-    .positive('Must be more than zero')
-    .max(1_000_000, 'That number is too large'),
-})
-
-const moneySchema = z.object({
-  value: z.coerce
-    .number()
-    .int('Whole rupees only')
-    .nonnegative('Cannot be negative')
-    .max(10_000_000, 'That number is too large'),
-})
-
 type NumberFormInput = { value: unknown }
 type NumberForm = { value: number }
 
@@ -48,6 +25,7 @@ export function NumberEditDialog({
   value,
   kind,
   integer,
+  max,
   onOpenChange,
   onSave,
 }: {
@@ -58,11 +36,35 @@ export function NumberEditDialog({
   value: number
   kind: 'quantity' | 'money'
   integer: boolean
+  max?: number
   onOpenChange: (open: boolean) => void
   onSave: (value: number) => void
 }): React.JSX.Element {
-  const schema =
-    kind === 'money' ? moneySchema : integer ? pieceQuantitySchema : quantitySchema
+  const schema = useMemo(() => {
+    const cap = max ?? (kind === 'money' ? 10_000_000 : 1_000_000)
+    const maxMessage = max === undefined ? 'That number is too large' : `At most ${max}`
+    if (kind === 'money') {
+      return z.object({
+        value: z.coerce
+          .number()
+          .int('Whole rupees only')
+          .nonnegative('Cannot be negative')
+          .max(cap, maxMessage),
+      })
+    }
+    if (integer) {
+      return z.object({
+        value: z.coerce
+          .number()
+          .int('Whole pieces only')
+          .positive('Must be more than zero')
+          .max(cap, maxMessage),
+      })
+    }
+    return z.object({
+      value: z.coerce.number().positive('Must be more than zero').max(cap, maxMessage),
+    })
+  }, [kind, integer, max])
   const min = kind === 'money' ? 0 : integer ? 1 : 0.001
   const step = integer ? 1 : 0.001
   const form = useForm<NumberFormInput, unknown, NumberForm>({
@@ -99,6 +101,7 @@ export function NumberEditDialog({
               id="number-edit-value"
               type="number"
               min={min}
+              max={max}
               step={step}
               inputMode={integer ? 'numeric' : 'decimal'}
               autoFocus

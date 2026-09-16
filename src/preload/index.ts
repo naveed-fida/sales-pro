@@ -8,6 +8,7 @@ import type {
 } from '@shared/schemas/catalog'
 import type { ReceivePurchaseInput } from '@shared/schemas/purchases'
 import type { ClockStatus } from '@shared/schemas/clock'
+import type { CompleteReturnInput, LookupReturnInput } from '@shared/schemas/returns'
 import type {
   CompleteSaleInput,
   ListSalesInput,
@@ -79,6 +80,11 @@ const api = {
   },
   receipt: {
     ready: (result: ReceiptReady) => ipcRenderer.send(IPC.receipt.ready, result),
+  },
+  returns: {
+    lookup: (input: LookupReturnInput) => ipcRenderer.invoke(IPC.returns.lookup, input),
+    complete: (input: CompleteReturnInput) =>
+      ipcRenderer.invoke(IPC.returns.complete, input),
   },
 }
 
