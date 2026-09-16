@@ -1,3 +1,4 @@
+import { productImageSrc } from '@shared/product-image'
 import type { AppSettings } from '@shared/schemas/settings'
 
 export function ReceiptFrame({
@@ -10,6 +11,13 @@ export function ReceiptFrame({
   return (
     <div className="w-[80mm] bg-white p-[3mm] font-sans text-[11px] leading-tight text-black">
       <div className="text-center">
+        {settings.shopLogo ? (
+          <img
+            src={productImageSrc(settings.shopLogo)}
+            alt=""
+            className="mx-auto mb-1.5 h-[16mm] w-auto max-w-[48mm] object-contain"
+          />
+        ) : null}
         <p className="text-sm font-semibold">{settings.shopName || 'Sales Pro'}</p>
         {settings.shopAddress ? (
           <p className="whitespace-pre-wrap">{settings.shopAddress}</p>

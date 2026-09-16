@@ -195,7 +195,8 @@ export function SettingsForm({
         <CardHeader>
           <CardTitle>Shop</CardTitle>
           <CardDescription>
-            Logo in the app header. Name, address, and phone print at the top of receipts.
+            Logo in the app header and at the top of receipts. Name, address, and phone
+            print below it.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -238,8 +239,8 @@ export function SettingsForm({
                   ) : null}
                 </div>
                 <FieldDescription>
-                  JPEG, PNG or WebP. Shown in the header. Shrunk on this computer before
-                  saving.
+                  JPEG, PNG or WebP. Shown in the header and on receipts. Shrunk on this
+                  computer before saving.
                 </FieldDescription>
                 <input
                   ref={fileInputRef}

@@ -1,0 +1,29 @@
+---
+description: Run lint, format, and typecheck via package.json scripts instead of rewriting them
+alwaysApply: true
+---
+
+# Use package.json scripts
+
+Look at `package.json` before running lint, format, typecheck, build, or any
+other maintenance command. If a script already does the job, run that script.
+Do not reconstruct the equivalent `npx`, `eslint`, `prettier`, or `tsc` line.
+
+```bash
+# BAD - invents a command the repo already wraps
+npx prettier --write src/foo.tsx
+npx eslint . --fix
+tsc --noEmit -p tsconfig.web.json
+
+# GOOD
+npm run format
+npm run lint:fix
+npm run typecheck
+```
+
+Pass extra args to the script only when the script is written to accept them
+and the extra scope is necessary. Prefer the full project script over a
+one-file rewrite.
+
+Write a one-off command only when no script covers the task. Say so when you
+do.

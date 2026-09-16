@@ -8,6 +8,7 @@ export const EXPENSE_CATEGORY_SUGGESTIONS = [
   'Packaging',
   'Maintenance',
   'Misc',
+  'Daily Allowance',
 ] as const
 
 export const expenseIdSchema = z.object({

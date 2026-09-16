@@ -139,17 +139,31 @@ function ReturnReceiptLoader({ returnId }: { returnId: number }): React.JSX.Elem
   return <ReturnReceiptDocument record={record} settings={settings} />
 }
 
+function waitForImages(): Promise<void> {
+  return Promise.all(
+    Array.from(document.images, (image) => {
+      if (image.complete) return Promise.resolve()
+      return new Promise<void>((resolve) => {
+        image.addEventListener('load', () => resolve(), { once: true })
+        image.addEventListener('error', () => resolve(), { once: true })
+      })
+    }),
+  ).then(() => undefined)
+}
+
 function useSignalReady(ready: boolean): void {
   useEffect(() => {
     if (!ready) return
     let cancelled = false
-    void document.fonts.ready.then(() => {
-      requestAnimationFrame(() => {
+    void document.fonts.ready
+      .then(() => waitForImages())
+      .then(() => {
         requestAnimationFrame(() => {
-          if (!cancelled) signalReady(true)
+          requestAnimationFrame(() => {
+            if (!cancelled) signalReady(true)
+          })
         })
       })
-    })
     return () => {
       cancelled = true
     }
