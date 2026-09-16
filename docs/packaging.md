@@ -149,7 +149,7 @@ To turn signing on, supply credentials as environment variables:
 | macOS notarisation | `APPLE_API_KEY`, `APPLE_API_KEY_ID`, `APPLE_API_ISSUER`, plus `mac.notarize` in `electron-builder.yml` |
 | Windows            | `WIN_CSC_LINK`, `WIN_CSC_KEY_PASSWORD`                                                                 |
 
-CI sets `CSC_IDENTITY_AUTO_DISCOVERY: false` so that branches and forks
+CI sets `CSC_IDENTITY_AUTO_DISCOVERY: false` so that tags and manual runs
 build without secrets. Remove it on the workflow's build step when you add
 certificates.
 
@@ -158,12 +158,12 @@ certificates.
 `.github/workflows/build.yml` runs on pushes to `main`, on pull requests
 against `main`, on `v*` tags, and on manual dispatch.
 
-- **Lint** runs once on Linux. It installs with `--ignore-scripts`, since
-  ESLint, Prettier and tsc are pure JavaScript and skipping that avoids a
-  300 MB Electron download.
-- **Build** is a matrix over macOS and Windows, uploading installers as
-  artifacts with 14 day retention. `fail-fast` is off so one platform failing
-  does not hide the other's result.
+- **Lint** runs on every trigger, once on Linux. It installs with
+  `--ignore-scripts`, since ESLint, Prettier and tsc are pure JavaScript and
+  skipping that avoids a 300 MB Electron download.
+- **Build** is a matrix over macOS and Windows, on tags and manual dispatch
+  only. It uploads installers as artifacts with 14 day retention. `fail-fast`
+  is off so one platform failing does not hide the other's result.
 - **Release** runs on `v*` tags only and attaches every artifact to a
   generated GitHub release.
 
