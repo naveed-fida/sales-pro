@@ -17,6 +17,7 @@ import {
   productVariants,
   products,
   purchases,
+  returnExchangeItems,
   returnItems,
   saleItems,
   sales,
@@ -97,6 +98,33 @@ function loadReport(from: string, to: string): ReportSummary {
           .where(inArray(returnItems.returnId, returnIds))
           .all()
 
+  const exchangedLines =
+    returnIds.length === 0
+      ? []
+      : db
+          .select({
+            returnId: returnExchangeItems.returnId,
+            variantId: returnExchangeItems.variantId,
+            quantityMilli: returnExchangeItems.quantityMilli,
+            unitPriceRs: returnExchangeItems.unitPriceRs,
+            lineDiscountRs: returnExchangeItems.lineDiscountRs,
+            lineTotalRs: returnExchangeItems.lineTotalRs,
+            unitCostRs: returnExchangeItems.unitCostRs,
+            barcode: productVariants.barcode,
+            size: productVariants.size,
+            colour: productVariants.colour,
+            productName: products.name,
+            unit: products.unit,
+          })
+          .from(returnExchangeItems)
+          .innerJoin(
+            productVariants,
+            eq(returnExchangeItems.variantId, productVariants.id),
+          )
+          .innerJoin(products, eq(productVariants.productId, products.id))
+          .where(inArray(returnExchangeItems.returnId, returnIds))
+          .all()
+
   const purchaseRows = db
     .select({
       id: purchases.id,
@@ -124,6 +152,15 @@ function loadReport(from: string, to: string): ReportSummary {
     returnedCostByReturn.set(
       line.returnId,
       (returnedCostByReturn.get(line.returnId) ?? 0) +
+        quantityCostRs(line.quantityMilli, line.unitCostRs),
+    )
+  }
+
+  const exchangedCostByReturn = new Map<number, number>()
+  for (const line of exchangedLines) {
+    exchangedCostByReturn.set(
+      line.returnId,
+      (exchangedCostByReturn.get(line.returnId) ?? 0) +
         quantityCostRs(line.quantityMilli, line.unitCostRs),
     )
   }
@@ -159,16 +196,28 @@ function loadReport(from: string, to: string): ReportSummary {
     }
   }
 
+  for (const line of exchangedLines) {
+    grossRs += quantityCostRs(line.quantityMilli, line.unitPriceRs)
+    discountRs += line.lineDiscountRs
+  }
+
   let returnRs = 0
   let returnCostRs = 0
+  let exchangeRs = 0
+  let exchangeCostRs = 0
   for (const row of returnRows) {
     const cost = returnedCostByReturn.get(row.id) ?? 0
+    const takenCost = exchangedCostByReturn.get(row.id) ?? 0
     returnRs += row.totalRs
     returnCostRs += cost
+    exchangeRs += row.exchangeTotalRs
+    exchangeCostRs += takenCost
     const bucket = days.get(dayKey(row.createdAt))
     if (bucket) {
       bucket.netRs -= row.totalRs
+      bucket.netRs += row.exchangeTotalRs
       bucket.costRs -= cost
+      bucket.costRs += takenCost
     }
   }
 
@@ -179,8 +228,8 @@ function loadReport(from: string, to: string): ReportSummary {
     if (bucket) bucket.expenseRs += row.amountRs
   }
 
-  const netRs = salesNetRs - returnRs
-  const costRs = salesCostRs - returnCostRs
+  const netRs = salesNetRs - returnRs + exchangeRs
+  const costRs = salesCostRs - returnCostRs + exchangeCostRs
   const grossProfitRs = netRs - costRs
   const purchaseRs = purchaseRows.reduce((sum, row) => sum + row.totalRs, 0)
   const netProfitRs = grossProfitRs - expenseRs
@@ -196,7 +245,7 @@ function loadReport(from: string, to: string): ReportSummary {
     number,
     Omit<ReportTopProduct, 'variantId'> & { variantId: number }
   >()
-  for (const line of itemRows) {
+  for (const line of [...itemRows, ...exchangedLines]) {
     const current = topByVariant.get(line.variantId)
     if (current) {
       current.quantityMilli += line.quantityMilli

@@ -7,6 +7,7 @@ import {
   products,
   purchaseItems,
   purchases,
+  returnExchangeItems,
   returnItems,
   saleItems,
   sales,
@@ -23,6 +24,7 @@ import type { AppDatabase, SqliteConnection } from '../sqlite.ts'
 export function clearBusinessData(db: AppDatabase, sqlite: SqliteConnection): void {
   db.transaction((tx) => {
     tx.delete(returnItems).run()
+    tx.delete(returnExchangeItems).run()
     tx.delete(salesReturns).run()
     tx.delete(saleItems).run()
     tx.delete(sales).run()

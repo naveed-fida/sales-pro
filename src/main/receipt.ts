@@ -8,12 +8,21 @@ const RECEIPT_WIDTH_MICRONS = 80 * 1000
 const MICRONS_PER_CSS_PX = 25400 / 96
 const RECEIPT_READY_MS = 15_000
 
+export type ReceiptQuery = { saleId: number } | { returnId: number }
+
+function queryEntries(query: ReceiptQuery): Record<string, string> {
+  return 'saleId' in query
+    ? { saleId: String(query.saleId) }
+    : { returnId: String(query.returnId) }
+}
+
 function receiptUrl(
-  saleId: number,
+  query: ReceiptQuery,
 ): { type: 'url'; value: string } | { type: 'file'; value: string } {
+  const search = new URLSearchParams(queryEntries(query)).toString()
   if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
     const base = process.env['ELECTRON_RENDERER_URL'].replace(/\/$/, '')
-    return { type: 'url', value: `${base}/receipt.html?saleId=${saleId}` }
+    return { type: 'url', value: `${base}/receipt.html?${search}` }
   }
 
   return { type: 'file', value: join(__dirname, '../renderer/receipt.html') }
@@ -90,7 +99,10 @@ function printWindow(
   })
 }
 
-export async function printReceipt(saleId: number, printerName: string): Promise<void> {
+export async function printReceipt(
+  query: ReceiptQuery,
+  printerName: string,
+): Promise<void> {
   const window = new BrowserWindow({
     width: 302,
     height: 640,
@@ -105,12 +117,12 @@ export async function printReceipt(saleId: number, printerName: string): Promise
   })
 
   try {
-    const target = receiptUrl(saleId)
+    const target = receiptUrl(query)
     const ready = waitForReceipt(window)
     if (target.type === 'url') {
       await window.loadURL(target.value)
     } else {
-      await window.loadFile(target.value, { query: { saleId: String(saleId) } })
+      await window.loadFile(target.value, { query: queryEntries(query) })
     }
     await ready
 

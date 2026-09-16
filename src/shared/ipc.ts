@@ -54,6 +54,9 @@ export const IPC = {
   returns: {
     lookup: 'returns:lookup',
     complete: 'returns:complete',
+    list: 'returns:list',
+    get: 'returns:get',
+    print: 'returns:print',
   },
   expenses: {
     list: 'expenses:list',

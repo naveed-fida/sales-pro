@@ -23,6 +23,8 @@ import type {
   CompleteReturnInput,
   LookupReturnInput,
   ReturnBill,
+  ReturnListItem,
+  ReturnRecord,
 } from '@shared/schemas/returns'
 import type {
   CompletedSale,
@@ -90,6 +92,9 @@ export type Api = {
   returns: {
     lookup: (input: LookupReturnInput) => Promise<IpcResult<ReturnBill>>
     complete: (input: CompleteReturnInput) => Promise<IpcResult<CompletedReturn>>
+    list: () => Promise<IpcResult<ReturnListItem[]>>
+    get: (id: number) => Promise<IpcResult<ReturnRecord>>
+    print: (id: number) => Promise<IpcResult<null>>
   }
   expenses: {
     list: () => Promise<IpcResult<Expense[]>>

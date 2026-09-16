@@ -73,6 +73,14 @@ function rangeFor(preset: Exclude<Preset, 'custom'>): ReportRangeInput {
   return { from: isoDay(startOfMonth(today)), to: todayIso }
 }
 
+function ReportTableCard({ children }: { children: React.ReactNode }): React.JSX.Element {
+  return (
+    <Card className="h-80 overflow-hidden py-0">
+      <CardContent className="h-full overflow-auto px-0">{children}</CardContent>
+    </Card>
+  )
+}
+
 function Kpi({
   label,
   value,
@@ -268,144 +276,142 @@ export function ReportsPage(): React.JSX.Element {
                 <TabsTrigger value="stock">Low stock</TabsTrigger>
               </TabsList>
               <TabsContent value="bills">
-                <Card className="py-0">
-                  <CardContent className="overflow-auto px-0">
-                    <table className="w-full caption-bottom text-sm">
-                      <TableHeader>
-                        <TableRow className="hover:bg-transparent">
-                          <TableHead>Bill</TableHead>
-                          <TableHead>Date</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead className="text-right">Total</TableHead>
+                <ReportTableCard>
+                  <table className="w-full caption-bottom text-sm">
+                    <TableHeader>
+                      <TableRow className="hover:bg-transparent">
+                        <TableHead className="sticky top-0 z-10 bg-card">Bill</TableHead>
+                        <TableHead className="sticky top-0 z-10 bg-card">Date</TableHead>
+                        <TableHead className="sticky top-0 z-10 bg-card">
+                          Status
+                        </TableHead>
+                        <TableHead className="sticky top-0 z-10 bg-card text-right">
+                          Total
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {report.bills.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={4} className="h-24 text-center">
+                            No bills in this period.
+                          </TableCell>
                         </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {report.bills.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={4} className="h-24 text-center">
-                              No bills in this period.
+                      ) : (
+                        report.bills.map((bill) => (
+                          <TableRow
+                            key={bill.id}
+                            className="cursor-pointer"
+                            onClick={() => setOpenId(bill.id)}
+                          >
+                            <TableCell>{bill.billNo}</TableCell>
+                            <TableCell>
+                              {format(new Date(bill.createdAt), 'd MMM yyyy, h:mm a')}
+                            </TableCell>
+                            <TableCell>{SALE_STATUS_LABELS[bill.status]}</TableCell>
+                            <TableCell className="text-right">
+                              {formatRs(bill.totalRs)}
                             </TableCell>
                           </TableRow>
-                        ) : (
-                          report.bills.map((bill) => (
-                            <TableRow
-                              key={bill.id}
-                              className="cursor-pointer"
-                              onClick={() => setOpenId(bill.id)}
-                            >
-                              <TableCell>{bill.billNo}</TableCell>
-                              <TableCell>
-                                {format(new Date(bill.createdAt), 'd MMM yyyy, h:mm a')}
-                              </TableCell>
-                              <TableCell>{SALE_STATUS_LABELS[bill.status]}</TableCell>
-                              <TableCell className="text-right">
-                                {formatRs(bill.totalRs)}
-                              </TableCell>
-                            </TableRow>
-                          ))
-                        )}
-                      </TableBody>
-                    </table>
-                  </CardContent>
-                </Card>
+                        ))
+                      )}
+                    </TableBody>
+                  </table>
+                </ReportTableCard>
               </TabsContent>
               <TabsContent value="products">
-                <Card className="py-0">
-                  <CardContent className="overflow-auto px-0">
-                    <table className="w-full caption-bottom text-sm">
-                      <TableHeader>
-                        <TableRow className="hover:bg-transparent">
-                          <TableHead>Item</TableHead>
-                          <TableHead>Qty</TableHead>
-                          <TableHead className="text-right">Net</TableHead>
+                <ReportTableCard>
+                  <table className="w-full caption-bottom text-sm">
+                    <TableHeader>
+                      <TableRow className="hover:bg-transparent">
+                        <TableHead className="sticky top-0 z-10 bg-card">Item</TableHead>
+                        <TableHead className="sticky top-0 z-10 bg-card">Qty</TableHead>
+                        <TableHead className="sticky top-0 z-10 bg-card text-right">
+                          Net
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {report.topProducts.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={3} className="h-24 text-center">
+                            No sales in this period.
+                          </TableCell>
                         </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {report.topProducts.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={3} className="h-24 text-center">
-                              No sales in this period.
+                      ) : (
+                        report.topProducts.map((item) => (
+                          <TableRow key={item.variantId} className="hover:bg-transparent">
+                            <TableCell>
+                              <div className="flex flex-col">
+                                <span>{variantOptionLabel(item)}</span>
+                                <span className="text-xs text-muted-foreground">
+                                  {item.barcode}
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {formatQuantity(item.quantityMilli, item.unit)}{' '}
+                              {UNIT_LABELS[item.unit]}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {formatRs(item.netRs)}
                             </TableCell>
                           </TableRow>
-                        ) : (
-                          report.topProducts.map((item) => (
-                            <TableRow
-                              key={item.variantId}
-                              className="hover:bg-transparent"
-                            >
-                              <TableCell>
-                                <div className="flex flex-col">
-                                  <span>{variantOptionLabel(item)}</span>
-                                  <span className="text-xs text-muted-foreground">
-                                    {item.barcode}
-                                  </span>
-                                </div>
-                              </TableCell>
-                              <TableCell>
-                                {formatQuantity(item.quantityMilli, item.unit)}{' '}
-                                {UNIT_LABELS[item.unit]}
-                              </TableCell>
-                              <TableCell className="text-right">
-                                {formatRs(item.netRs)}
-                              </TableCell>
-                            </TableRow>
-                          ))
-                        )}
-                      </TableBody>
-                    </table>
-                  </CardContent>
-                </Card>
+                        ))
+                      )}
+                    </TableBody>
+                  </table>
+                </ReportTableCard>
               </TabsContent>
               <TabsContent value="stock">
-                <Card className="py-0">
-                  <CardContent className="overflow-auto px-0">
-                    <table className="w-full caption-bottom text-sm">
-                      <TableHeader>
-                        <TableRow className="hover:bg-transparent">
-                          <TableHead>Item</TableHead>
-                          <TableHead>On hand</TableHead>
-                          <TableHead>Reorder at</TableHead>
+                <ReportTableCard>
+                  <table className="w-full caption-bottom text-sm">
+                    <TableHeader>
+                      <TableRow className="hover:bg-transparent">
+                        <TableHead className="sticky top-0 z-10 bg-card">Item</TableHead>
+                        <TableHead className="sticky top-0 z-10 bg-card">
+                          On hand
+                        </TableHead>
+                        <TableHead className="sticky top-0 z-10 bg-card">
+                          Reorder at
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {report.lowStock.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={3} className="h-24 text-center">
+                            All stock is above reorder level.
+                          </TableCell>
                         </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {report.lowStock.length === 0 ? (
-                          <TableRow>
-                            <TableCell colSpan={3} className="h-24 text-center">
-                              All stock is above reorder level.
+                      ) : (
+                        report.lowStock.map((item) => (
+                          <TableRow key={item.variantId} className="hover:bg-transparent">
+                            <TableCell>
+                              <div className="flex flex-col">
+                                <span>{variantOptionLabel(item)}</span>
+                                <span className="text-xs text-muted-foreground">
+                                  {item.barcode}
+                                </span>
+                              </div>
+                            </TableCell>
+                            <TableCell
+                              className={cn(
+                                item.quantityMilli <= 0 && 'text-destructive',
+                              )}
+                            >
+                              {formatQuantity(item.quantityMilli, item.unit)}{' '}
+                              {UNIT_LABELS[item.unit]}
+                            </TableCell>
+                            <TableCell>
+                              {formatQuantity(item.reorderLevelMilli, item.unit)}
                             </TableCell>
                           </TableRow>
-                        ) : (
-                          report.lowStock.map((item) => (
-                            <TableRow
-                              key={item.variantId}
-                              className="hover:bg-transparent"
-                            >
-                              <TableCell>
-                                <div className="flex flex-col">
-                                  <span>{variantOptionLabel(item)}</span>
-                                  <span className="text-xs text-muted-foreground">
-                                    {item.barcode}
-                                  </span>
-                                </div>
-                              </TableCell>
-                              <TableCell
-                                className={cn(
-                                  item.quantityMilli <= 0 && 'text-destructive',
-                                )}
-                              >
-                                {formatQuantity(item.quantityMilli, item.unit)}{' '}
-                                {UNIT_LABELS[item.unit]}
-                              </TableCell>
-                              <TableCell>
-                                {formatQuantity(item.reorderLevelMilli, item.unit)}
-                              </TableCell>
-                            </TableRow>
-                          ))
-                        )}
-                      </TableBody>
-                    </table>
-                  </CardContent>
-                </Card>
+                        ))
+                      )}
+                    </TableBody>
+                  </table>
+                </ReportTableCard>
               </TabsContent>
             </Tabs>
           </>

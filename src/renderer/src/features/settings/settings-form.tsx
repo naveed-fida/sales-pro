@@ -161,7 +161,7 @@ export function SettingsForm({
         <CardHeader>
           <CardTitle>Receipts</CardTitle>
           <CardDescription>
-            Footer text and the 80mm thermal printer used when a sale completes.
+            Footer text and the 80mm thermal printer used when a sale or return completes.
           </CardDescription>
         </CardHeader>
         <CardContent>

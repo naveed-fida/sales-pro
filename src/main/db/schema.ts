@@ -218,6 +218,9 @@ export const salesReturns = sqliteTable(
       .notNull()
       .references(() => sales.id),
     totalRs: integer('total_rs').notNull(),
+    exchangeTotalRs: integer('exchange_total_rs').notNull().default(0),
+    tenderedRs: integer('tendered_rs').notNull().default(0),
+    changeRs: integer('change_rs').notNull().default(0),
     createdAt: integer('created_at', { mode: 'timestamp' })
       .notNull()
       .default(createdAtDefault),
@@ -248,6 +251,28 @@ export const returnItems = sqliteTable(
   ],
 )
 
+export const returnExchangeItems = sqliteTable(
+  'return_exchange_items',
+  {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    returnId: integer('return_id')
+      .notNull()
+      .references(() => salesReturns.id, { onDelete: 'cascade' }),
+    variantId: integer('variant_id')
+      .notNull()
+      .references(() => productVariants.id),
+    quantityMilli: integer('quantity_milli').notNull(),
+    unitPriceRs: integer('unit_price_rs').notNull(),
+    lineDiscountRs: integer('line_discount_rs').notNull().default(0),
+    lineTotalRs: integer('line_total_rs').notNull(),
+    unitCostRs: integer('unit_cost_rs').notNull(),
+  },
+  (table) => [
+    index('return_exchange_items_return_id_idx').on(table.returnId),
+    index('return_exchange_items_variant_id_idx').on(table.variantId),
+  ],
+)
+
 export const stockMovements = sqliteTable(
   'stock_movements',
   {
@@ -257,7 +282,7 @@ export const stockMovements = sqliteTable(
       .references(() => productVariants.id),
     quantityMilli: integer('quantity_milli').notNull(),
     reason: text('reason', {
-      enum: ['opening', 'purchase', 'sale', 'return', 'adjustment'],
+      enum: ['opening', 'purchase', 'sale', 'return', 'exchange', 'adjustment'],
     }).notNull(),
     sourceTable: text('source_table'),
     sourceId: integer('source_id'),

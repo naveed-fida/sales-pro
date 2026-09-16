@@ -530,7 +530,7 @@ export function registerSalesHandlers(): void {
       try {
         const sale = loadSale(parsed.data.id)
         if (!sale) return ipcFail('Sale not found.')
-        await printReceipt(sale.id, loadSettings().printerName)
+        await printReceipt({ saleId: sale.id }, loadSettings().printerName)
         return ipcOk(null)
       } catch (error) {
         console.error('sales:print failed', error)

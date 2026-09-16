@@ -57,5 +57,8 @@ export const PURCHASE_HOTKEYS = {
 
 export const RETURN_HOTKEYS = {
   quantity: { combo: 'f2', label: 'F2' },
+  price: { combo: 'f3', label: 'F3' },
+  lineDiscount: { combo: 'f5', label: 'F5' },
+  tendered: { combo: 'f9', label: 'F9' },
   complete: { combo: 'f12', label: 'F12' },
 } as const

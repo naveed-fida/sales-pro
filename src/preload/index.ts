@@ -87,6 +87,9 @@ const api = {
     lookup: (input: LookupReturnInput) => ipcRenderer.invoke(IPC.returns.lookup, input),
     complete: (input: CompleteReturnInput) =>
       ipcRenderer.invoke(IPC.returns.complete, input),
+    list: () => ipcRenderer.invoke(IPC.returns.list),
+    get: (id: number) => ipcRenderer.invoke(IPC.returns.get, { id }),
+    print: (id: number) => ipcRenderer.invoke(IPC.returns.print, { id }),
   },
   expenses: {
     list: () => ipcRenderer.invoke(IPC.expenses.list),

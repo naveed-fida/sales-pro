@@ -5,6 +5,7 @@ import type { AppSettings } from '@shared/schemas/settings'
 import type { SaleRecord } from '@shared/schemas/sales'
 import { variantOptionLabel } from '@shared/variant-label'
 import { UNIT_LABELS } from '@/features/products/unit-labels'
+import { ReceiptFrame } from './receipt-frame'
 
 export function ReceiptDocument({
   sale,
@@ -16,17 +17,7 @@ export function ReceiptDocument({
   const subtotal = sale.totalRs + sale.discountRs
 
   return (
-    <div className="w-[80mm] bg-white p-[3mm] font-sans text-[11px] leading-tight text-black">
-      <div className="text-center">
-        <p className="text-sm font-semibold">{settings.shopName || 'Sales Pro'}</p>
-        {settings.shopAddress ? (
-          <p className="whitespace-pre-wrap">{settings.shopAddress}</p>
-        ) : null}
-        {settings.shopPhone ? <p>{settings.shopPhone}</p> : null}
-      </div>
-
-      <div className="my-2 border-t border-dashed border-black" />
-
+    <ReceiptFrame settings={settings}>
       <p>Bill {sale.billNo}</p>
       <p>{format(new Date(sale.createdAt), 'd MMM yyyy, h:mm a')}</p>
       {sale.phone ? <p>Phone {sale.phone}</p> : null}
@@ -82,13 +73,6 @@ export function ReceiptDocument({
           <span>{formatRs(sale.changeRs)}</span>
         </div>
       </div>
-
-      {settings.receiptFooter ? (
-        <>
-          <div className="my-2 border-t border-dashed border-black" />
-          <p className="whitespace-pre-wrap text-center">{settings.receiptFooter}</p>
-        </>
-      ) : null}
-    </div>
+    </ReceiptFrame>
   )
 }

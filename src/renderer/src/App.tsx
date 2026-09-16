@@ -9,6 +9,7 @@ import { PurchasesPage } from '@/features/purchases/purchases-page'
 import { PurchaseEntryPage } from '@/features/purchases/purchase-entry-page'
 import { SalesPage } from '@/features/sales/sales-page'
 import { ReturnsPage } from '@/features/returns/returns-page'
+import { ReturnEntryPage } from '@/features/returns/return-entry-page'
 import { ExpensesPage } from '@/features/expenses/expenses-page'
 import { ReportsPage } from '@/features/reports/reports-page'
 import { SettingsPage } from '@/features/settings/settings-page'
@@ -25,6 +26,7 @@ export function App(): React.JSX.Element {
             <Route path="purchases/new" element={<PurchaseEntryPage />} />
             <Route path="sales" element={<SalesPage />} />
             <Route path="returns" element={<ReturnsPage />} />
+            <Route path="returns/new" element={<ReturnEntryPage />} />
             <Route path="expenses" element={<ExpensesPage />} />
             <Route path="reports" element={<ReportsPage />} />
             <Route path="settings" element={<SettingsPage />} />

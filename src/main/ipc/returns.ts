@@ -1,21 +1,26 @@
-import { asc, eq } from 'drizzle-orm'
+import { asc, desc, eq, inArray } from 'drizzle-orm'
 import { ipcMain } from 'electron'
-import { allocateByWeights, refundPortionRs } from '@shared/cost'
+import { groupBy } from 'lodash-es'
+import { allocateByWeights, lineTotalRs, refundPortionRs } from '@shared/cost'
 import { IPC } from '@shared/ipc'
 import { ipcFail, ipcOk, type IpcResult } from '@shared/ipc-result'
 import { fromMilli, toMilli } from '@shared/quantity'
 import {
   completeReturnSchema,
   lookupReturnSchema,
+  returnIdSchema,
   type CompletedReturn,
   type CompleteReturn,
   type ReturnBill,
   type ReturnBillItem,
+  type ReturnListItem,
+  type ReturnRecord,
 } from '@shared/schemas/returns'
 import { getDb } from '../db/client'
 import {
   productVariants,
   products,
+  returnExchangeItems,
   returnItems,
   saleItems,
   sales,
@@ -23,6 +28,8 @@ import {
   stockMovements,
 } from '../db/schema'
 import type { AppDatabase } from '../db/sqlite'
+import { printReceipt } from '../receipt'
+import { loadSettings } from './settings'
 
 type QueryDb = Pick<AppDatabase, 'select'>
 
@@ -204,11 +211,88 @@ function completeReturn(input: CompleteReturn): CompletedReturn {
     }
 
     const totalRs = prepared.reduce((sum, line) => sum + line.lineTotalRs, 0)
+
+    const exchangePrepared: Array<{
+      variantId: number
+      quantityMilli: number
+      unitPriceRs: number
+      lineDiscountRs: number
+      lineTotalRs: number
+      unitCostRs: number
+    }> = []
+    const reservedMilli = new Map<number, number>()
+    for (const line of prepared) {
+      reservedMilli.set(
+        line.variantId,
+        (reservedMilli.get(line.variantId) ?? 0) - line.quantityMilli,
+      )
+    }
+
+    for (const [index, item] of input.exchangeItems.entries()) {
+      const quantityMilli = toMilli(item.quantity)
+      const variant = tx
+        .select()
+        .from(productVariants)
+        .where(eq(productVariants.id, item.variantId))
+        .get()
+      if (!variant || !variant.isActive) {
+        throw new ReturnsError(
+          'Item is no longer for sale.',
+          `exchangeItems.${index}.variantId`,
+        )
+      }
+      const product = tx
+        .select()
+        .from(products)
+        .where(eq(products.id, variant.productId))
+        .get()
+      if (!product) {
+        throw new ReturnsError(
+          'Item is no longer for sale.',
+          `exchangeItems.${index}.variantId`,
+        )
+      }
+      if (product.unit === 'piece' && !Number.isInteger(item.quantity)) {
+        throw new ReturnsError('Whole pieces only', `exchangeItems.${index}.quantity`)
+      }
+      const already = reservedMilli.get(variant.id) ?? 0
+      const remaining = variant.quantityMilli - already
+      if (remaining < quantityMilli) {
+        throw new ReturnsError(
+          `Only ${fromMilli(Math.max(0, remaining))} in stock.`,
+          `exchangeItems.${index}.quantity`,
+        )
+      }
+      reservedMilli.set(variant.id, already + quantityMilli)
+      exchangePrepared.push({
+        variantId: variant.id,
+        quantityMilli,
+        unitPriceRs: item.unitPriceRs,
+        lineDiscountRs: item.lineDiscountRs,
+        lineTotalRs: lineTotalRs(quantityMilli, item.unitPriceRs, item.lineDiscountRs),
+        unitCostRs: variant.avgCostRs,
+      })
+    }
+
+    const exchangeTotalRs = exchangePrepared.reduce(
+      (sum, line) => sum + line.lineTotalRs,
+      0,
+    )
+    const dueRs = Math.max(0, exchangeTotalRs - totalRs)
+    if (dueRs > 0 && input.tenderedRs < dueRs) {
+      throw new ReturnsError('Tendered is less than the due amount.', 'tenderedRs')
+    }
+    const tenderedRs = dueRs > 0 ? input.tenderedRs : 0
+    const changeRs = dueRs > 0 ? tenderedRs - dueRs : 0
+
     const inserted = tx
       .insert(salesReturns)
       .values({
         saleId: sale.id,
         totalRs,
+        exchangeTotalRs,
+        tenderedRs,
+        changeRs,
       })
       .returning({ id: salesReturns.id })
       .get()
@@ -251,6 +335,45 @@ function completeReturn(input: CompleteReturn): CompletedReturn {
         .run()
     }
 
+    for (const line of exchangePrepared) {
+      tx.insert(returnExchangeItems)
+        .values({
+          returnId: inserted.id,
+          variantId: line.variantId,
+          quantityMilli: line.quantityMilli,
+          unitPriceRs: line.unitPriceRs,
+          lineDiscountRs: line.lineDiscountRs,
+          lineTotalRs: line.lineTotalRs,
+          unitCostRs: line.unitCostRs,
+        })
+        .run()
+
+      const variant = tx
+        .select()
+        .from(productVariants)
+        .where(eq(productVariants.id, line.variantId))
+        .get()
+      if (!variant) throw new ReturnsError('Item is no longer for sale.')
+
+      tx.update(productVariants)
+        .set({
+          quantityMilli: variant.quantityMilli - line.quantityMilli,
+          updatedAt: new Date(),
+        })
+        .where(eq(productVariants.id, line.variantId))
+        .run()
+
+      tx.insert(stockMovements)
+        .values({
+          variantId: line.variantId,
+          quantityMilli: -line.quantityMilli,
+          reason: 'exchange',
+          sourceTable: 'sales_returns',
+          sourceId: inserted.id,
+        })
+        .run()
+    }
+
     const remainingAfter = new Map(
       items.map((item) => [item.saleItemId, item.remainingMilli]),
     )
@@ -270,9 +393,136 @@ function completeReturn(input: CompleteReturn): CompletedReturn {
       saleId: sale.id,
       billNo: sale.billNo,
       totalRs,
+      exchangeTotalRs,
+      tenderedRs,
+      changeRs,
       saleStatus,
     }
   })
+}
+
+function listReturns(): ReturnListItem[] {
+  const db = getDb()
+  const rows = db
+    .select({
+      id: salesReturns.id,
+      saleId: salesReturns.saleId,
+      totalRs: salesReturns.totalRs,
+      exchangeTotalRs: salesReturns.exchangeTotalRs,
+      tenderedRs: salesReturns.tenderedRs,
+      changeRs: salesReturns.changeRs,
+      createdAt: salesReturns.createdAt,
+      billNo: sales.billNo,
+      phone: sales.phone,
+    })
+    .from(salesReturns)
+    .innerJoin(sales, eq(salesReturns.saleId, sales.id))
+    .orderBy(desc(salesReturns.createdAt), desc(salesReturns.id))
+    .all()
+
+  const ids = rows.map((row) => row.id)
+  const itemRows =
+    ids.length === 0
+      ? []
+      : db
+          .select({ id: returnItems.id, returnId: returnItems.returnId })
+          .from(returnItems)
+          .where(inArray(returnItems.returnId, ids))
+          .all()
+  const exchangeRows =
+    ids.length === 0
+      ? []
+      : db
+          .select({ id: returnExchangeItems.id, returnId: returnExchangeItems.returnId })
+          .from(returnExchangeItems)
+          .where(inArray(returnExchangeItems.returnId, ids))
+          .all()
+  const itemsByReturn = groupBy(itemRows, (row) => String(row.returnId))
+  const exchangeByReturn = groupBy(exchangeRows, (row) => String(row.returnId))
+
+  return rows.map((row) => ({
+    id: row.id,
+    saleId: row.saleId,
+    billNo: row.billNo,
+    phone: row.phone,
+    createdAt: row.createdAt,
+    itemCount:
+      (itemsByReturn[String(row.id)] ?? []).length +
+      (exchangeByReturn[String(row.id)] ?? []).length,
+    totalRs: row.totalRs,
+    exchangeTotalRs: row.exchangeTotalRs,
+    tenderedRs: row.tenderedRs,
+    changeRs: row.changeRs,
+  }))
+}
+
+function loadReturn(id: number): ReturnRecord | undefined {
+  const db = getDb()
+  const row = db
+    .select({
+      id: salesReturns.id,
+      saleId: salesReturns.saleId,
+      totalRs: salesReturns.totalRs,
+      exchangeTotalRs: salesReturns.exchangeTotalRs,
+      tenderedRs: salesReturns.tenderedRs,
+      changeRs: salesReturns.changeRs,
+      createdAt: salesReturns.createdAt,
+      billNo: sales.billNo,
+      phone: sales.phone,
+    })
+    .from(salesReturns)
+    .innerJoin(sales, eq(salesReturns.saleId, sales.id))
+    .where(eq(salesReturns.id, id))
+    .get()
+  if (!row) return undefined
+
+  const items = db
+    .select({
+      id: returnItems.id,
+      variantId: returnItems.variantId,
+      quantityMilli: returnItems.quantityMilli,
+      unitPriceRs: returnItems.unitPriceRs,
+      lineTotalRs: returnItems.lineTotalRs,
+      barcode: productVariants.barcode,
+      size: productVariants.size,
+      colour: productVariants.colour,
+      productName: products.name,
+      unit: products.unit,
+    })
+    .from(returnItems)
+    .innerJoin(productVariants, eq(returnItems.variantId, productVariants.id))
+    .innerJoin(products, eq(productVariants.productId, products.id))
+    .where(eq(returnItems.returnId, id))
+    .orderBy(asc(returnItems.id))
+    .all()
+
+  const exchangeItems = db
+    .select({
+      id: returnExchangeItems.id,
+      variantId: returnExchangeItems.variantId,
+      quantityMilli: returnExchangeItems.quantityMilli,
+      unitPriceRs: returnExchangeItems.unitPriceRs,
+      lineDiscountRs: returnExchangeItems.lineDiscountRs,
+      lineTotalRs: returnExchangeItems.lineTotalRs,
+      barcode: productVariants.barcode,
+      size: productVariants.size,
+      colour: productVariants.colour,
+      productName: products.name,
+      unit: products.unit,
+    })
+    .from(returnExchangeItems)
+    .innerJoin(productVariants, eq(returnExchangeItems.variantId, productVariants.id))
+    .innerJoin(products, eq(productVariants.productId, products.id))
+    .where(eq(returnExchangeItems.returnId, id))
+    .orderBy(asc(returnExchangeItems.id))
+    .all()
+
+  return {
+    ...row,
+    itemCount: items.length + exchangeItems.length,
+    items,
+    exchangeItems,
+  }
 }
 
 export function registerReturnsHandlers(): void {
@@ -316,6 +566,55 @@ export function registerReturnsHandlers(): void {
         if (error instanceof ReturnsError) return ipcFail(error.message, error.field)
         console.error('returns:complete failed', error)
         return ipcFail('Could not complete the return.')
+      }
+    },
+  )
+
+  ipcMain.handle(IPC.returns.list, (): IpcResult<ReturnListItem[]> => {
+    try {
+      return ipcOk(listReturns())
+    } catch (error) {
+      console.error('returns:list failed', error)
+      return ipcFail('Could not load returns.')
+    }
+  })
+
+  ipcMain.handle(IPC.returns.get, (_event, payload: unknown): IpcResult<ReturnRecord> => {
+    const parsed = returnIdSchema.safeParse(payload)
+    if (!parsed.success) {
+      const issue = parsed.error.issues[0]
+      return ipcFail(
+        issue?.message ?? 'Invalid return.',
+        issue?.path.map(String).join('.'),
+      )
+    }
+
+    try {
+      const record = loadReturn(parsed.data.id)
+      if (!record) return ipcFail('Return not found.')
+      return ipcOk(record)
+    } catch (error) {
+      console.error('returns:get failed', error)
+      return ipcFail('Could not load the return.')
+    }
+  })
+
+  ipcMain.handle(
+    IPC.returns.print,
+    async (_event, payload: unknown): Promise<IpcResult<null>> => {
+      const parsed = returnIdSchema.safeParse(payload)
+      if (!parsed.success) return ipcFail('Invalid return.')
+
+      try {
+        const record = loadReturn(parsed.data.id)
+        if (!record) return ipcFail('Return not found.')
+        await printReceipt({ returnId: record.id }, loadSettings().printerName)
+        return ipcOk(null)
+      } catch (error) {
+        console.error('returns:print failed', error)
+        return ipcFail(
+          error instanceof Error ? error.message : 'Could not print the receipt.',
+        )
       }
     },
   )
