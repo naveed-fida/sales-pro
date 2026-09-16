@@ -9,13 +9,14 @@ import type {
   SaveProductImageInput,
   SaveProductInput,
 } from '@shared/schemas/catalog'
+import type { ClockStatus } from '@shared/schemas/clock'
+import type { Expense, SaveExpenseInput } from '@shared/schemas/expenses'
 import type {
   PurchaseCatalogVariant,
   PurchaseListItem,
   PurchaseRecord,
   ReceivePurchaseInput,
 } from '@shared/schemas/purchases'
-import type { ClockStatus } from '@shared/schemas/clock'
 import type {
   CompletedReturn,
   CompleteReturnInput,
@@ -88,6 +89,11 @@ export type Api = {
   returns: {
     lookup: (input: LookupReturnInput) => Promise<IpcResult<ReturnBill>>
     complete: (input: CompleteReturnInput) => Promise<IpcResult<CompletedReturn>>
+  }
+  expenses: {
+    list: () => Promise<IpcResult<Expense[]>>
+    save: (input: SaveExpenseInput) => Promise<IpcResult<Expense>>
+    delete: (id: number) => Promise<IpcResult<null>>
   }
 }
 

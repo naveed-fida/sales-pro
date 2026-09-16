@@ -6,8 +6,9 @@ import type {
   SaveProductImageInput,
   SaveProductInput,
 } from '@shared/schemas/catalog'
-import type { ReceivePurchaseInput } from '@shared/schemas/purchases'
 import type { ClockStatus } from '@shared/schemas/clock'
+import type { SaveExpenseInput } from '@shared/schemas/expenses'
+import type { ReceivePurchaseInput } from '@shared/schemas/purchases'
 import type { CompleteReturnInput, LookupReturnInput } from '@shared/schemas/returns'
 import type {
   CompleteSaleInput,
@@ -85,6 +86,11 @@ const api = {
     lookup: (input: LookupReturnInput) => ipcRenderer.invoke(IPC.returns.lookup, input),
     complete: (input: CompleteReturnInput) =>
       ipcRenderer.invoke(IPC.returns.complete, input),
+  },
+  expenses: {
+    list: () => ipcRenderer.invoke(IPC.expenses.list),
+    save: (input: SaveExpenseInput) => ipcRenderer.invoke(IPC.expenses.save, input),
+    delete: (id: number) => ipcRenderer.invoke(IPC.expenses.delete, { id }),
   },
 }
 

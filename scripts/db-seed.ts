@@ -4,6 +4,7 @@ import { devDatabasePath, envDatabasePath, loadEnvFile } from '../src/main/db/pa
 import { categories } from '../src/main/db/schema.ts'
 import { seedCatalog } from '../src/main/db/seed/catalog.ts'
 import { clearBusinessData } from '../src/main/db/seed/clear.ts'
+import { seedExpenses } from '../src/main/db/seed/expenses.ts'
 import { seedPurchases } from '../src/main/db/seed/purchases.ts'
 import { seedSales } from '../src/main/db/seed/sales.ts'
 import { openDatabase } from '../src/main/db/sqlite.ts'
@@ -40,6 +41,7 @@ function main(): void {
   const catalog = seedCatalog(db)
   const purchases = seedPurchases(db)
   const sales = seedSales(db)
+  const shopExpenses = seedExpenses(db)
   sqlite.close()
 
   console.log(`Seeded ${databasePath}`)
@@ -50,6 +52,7 @@ function main(): void {
     `suppliers ${purchases.suppliersCreated}, purchases ${purchases.purchasesCreated}`,
   )
   console.log(`sales ${sales.salesCreated}, holds ${sales.holdsCreated}`)
+  console.log(`expenses ${shopExpenses.expensesCreated}`)
 }
 
 try {
