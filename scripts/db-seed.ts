@@ -1,12 +1,15 @@
-import { existsSync } from 'node:fs'
+import { existsSync, rmSync } from 'node:fs'
+import { dirname, join } from 'node:path'
 import { devDatabasePath, envDatabasePath, loadEnvFile } from '../src/main/db/paths.ts'
 import { categories } from '../src/main/db/schema.ts'
 import { seedCatalog } from '../src/main/db/seed/catalog.ts'
+import { clearBusinessData } from '../src/main/db/seed/clear.ts'
 import { seedPurchases } from '../src/main/db/seed/purchases.ts'
+import { seedSales } from '../src/main/db/seed/sales.ts'
 import { openDatabase } from '../src/main/db/sqlite.ts'
 
 /**
- * Seeds the same SQLite file drizzle-kit and `npm run dev` use. Migrations are
+ * Wipes shop data (not settings) and inserts the full demo set. Migrations are
  * applied by the app, not here, so start the app once if the file is empty.
  */
 function main(): void {
@@ -31,17 +34,22 @@ function main(): void {
     )
   }
 
+  clearBusinessData(db, sqlite)
+  rmSync(join(dirname(databasePath), 'product-images'), { recursive: true, force: true })
+
   const catalog = seedCatalog(db)
   const purchases = seedPurchases(db)
+  const sales = seedSales(db)
   sqlite.close()
 
   console.log(`Seeded ${databasePath}`)
   console.log(
-    `categories +${catalog.categoriesCreated}, products +${catalog.productsCreated}, skipped ${catalog.productsSkipped}`,
+    `categories ${catalog.categoriesCreated}, products ${catalog.productsCreated}`,
   )
   console.log(
-    `suppliers +${purchases.suppliersCreated}, purchases +${purchases.purchasesCreated}`,
+    `suppliers ${purchases.suppliersCreated}, purchases ${purchases.purchasesCreated}`,
   )
+  console.log(`sales ${sales.salesCreated}, holds ${sales.holdsCreated}`)
 }
 
 try {

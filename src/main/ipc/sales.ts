@@ -1,4 +1,17 @@
-import { asc, desc, eq } from 'drizzle-orm'
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  gte,
+  inArray,
+  like,
+  lte,
+  or,
+  sql,
+  type SQL,
+} from 'drizzle-orm'
 import { ipcMain } from 'electron'
 import { groupBy } from 'lodash-es'
 import { lineTotalRs } from '@shared/cost'
@@ -8,13 +21,21 @@ import { fromMilli, toMilli } from '@shared/quantity'
 import {
   completeSaleSchema,
   holdIdSchema,
+  listSalesSchema,
+  SALES_PAGE_SIZE,
+  saleIdSchema,
   saveHoldSchema,
   type CompletedSale,
   type HeldSale,
   type HeldSaleItem,
+  type ListSalesInput,
   type PosCatalogVariant,
+  type SaleListPage,
+  type SaleRecord,
 } from '@shared/schemas/sales'
+import { printReceipt } from '../receipt'
 import { getDb } from '../db/client'
+import { loadSettings } from './settings'
 import {
   heldSaleItems,
   heldSales,
@@ -294,6 +315,115 @@ function completeSale(input: {
   return completed
 }
 
+function likePattern(search: string): string {
+  return `%${search.replaceAll('%', '').replaceAll('_', '')}%`
+}
+
+function dayStart(iso: string): Date {
+  return new Date(`${iso}T00:00:00`)
+}
+
+function dayEnd(iso: string): Date {
+  return new Date(`${iso}T23:59:59.999`)
+}
+
+function listSales(input: ListSalesInput): SaleListPage {
+  const db = getDb()
+  const conditions: SQL[] = []
+  const pattern = input.search ? likePattern(input.search) : null
+  if (pattern) {
+    const searchFilter = or(
+      sql`cast(${sales.billNo} as text) like ${pattern}`,
+      like(sales.phone, pattern),
+    )
+    if (searchFilter) conditions.push(searchFilter)
+  }
+  if (input.from) conditions.push(gte(sales.createdAt, dayStart(input.from)))
+  if (input.to) conditions.push(lte(sales.createdAt, dayEnd(input.to)))
+  if (input.status !== 'all') conditions.push(eq(sales.status, input.status))
+  const filter = conditions.length > 0 ? and(...conditions) : undefined
+
+  const total = db.select({ total: count() }).from(sales).where(filter).get()?.total ?? 0
+  const saleRows = db
+    .select()
+    .from(sales)
+    .where(filter)
+    .orderBy(desc(sales.createdAt), desc(sales.id))
+    .limit(SALES_PAGE_SIZE)
+    .offset((input.page - 1) * SALES_PAGE_SIZE)
+    .all()
+
+  const ids = saleRows.map((row) => row.id)
+  const itemRows =
+    ids.length === 0
+      ? []
+      : db
+          .select({ id: saleItems.id, saleId: saleItems.saleId })
+          .from(saleItems)
+          .where(inArray(saleItems.saleId, ids))
+          .all()
+  const itemsBySale = groupBy(itemRows, (row) => String(row.saleId))
+
+  return {
+    items: saleRows.map((row) => ({
+      id: row.id,
+      billNo: row.billNo,
+      phone: row.phone,
+      status: row.status,
+      createdAt: row.createdAt,
+      itemCount: (itemsBySale[String(row.id)] ?? []).length,
+      discountRs: row.discountRs,
+      totalRs: row.totalRs,
+      tenderedRs: row.tenderedRs,
+      changeRs: row.changeRs,
+    })),
+    total,
+    page: input.page,
+    pageSize: SALES_PAGE_SIZE,
+  }
+}
+
+function loadSale(id: number): SaleRecord | undefined {
+  const db = getDb()
+  const row = db.select().from(sales).where(eq(sales.id, id)).get()
+  if (!row) return undefined
+
+  const items = db
+    .select({
+      id: saleItems.id,
+      variantId: saleItems.variantId,
+      quantityMilli: saleItems.quantityMilli,
+      unitPriceRs: saleItems.unitPriceRs,
+      lineDiscountRs: saleItems.lineDiscountRs,
+      lineTotalRs: saleItems.lineTotalRs,
+      barcode: productVariants.barcode,
+      size: productVariants.size,
+      colour: productVariants.colour,
+      productName: products.name,
+      unit: products.unit,
+    })
+    .from(saleItems)
+    .innerJoin(productVariants, eq(saleItems.variantId, productVariants.id))
+    .innerJoin(products, eq(productVariants.productId, products.id))
+    .where(eq(saleItems.saleId, id))
+    .orderBy(asc(saleItems.id))
+    .all()
+
+  return {
+    id: row.id,
+    billNo: row.billNo,
+    phone: row.phone,
+    status: row.status,
+    createdAt: row.createdAt,
+    itemCount: items.length,
+    discountRs: row.discountRs,
+    totalRs: row.totalRs,
+    tenderedRs: row.tenderedRs,
+    changeRs: row.changeRs,
+    items,
+  }
+}
+
 export function registerSalesHandlers(): void {
   ipcMain.handle(IPC.sales.catalog, (): IpcResult<PosCatalogVariant[]> => {
     try {
@@ -361,6 +491,52 @@ export function registerSalesHandlers(): void {
         if (error instanceof SalesError) return ipcFail(error.message, error.field)
         console.error('sales:complete failed', error)
         return ipcFail('Could not complete the sale.')
+      }
+    },
+  )
+
+  ipcMain.handle(IPC.sales.list, (_event, payload: unknown): IpcResult<SaleListPage> => {
+    const parsed = listSalesSchema.safeParse(payload)
+    if (!parsed.success) return ipcFail('Invalid sales list.')
+
+    try {
+      return ipcOk(listSales(parsed.data))
+    } catch (error) {
+      console.error('sales:list failed', error)
+      return ipcFail('Could not load sales.')
+    }
+  })
+
+  ipcMain.handle(IPC.sales.get, (_event, payload: unknown): IpcResult<SaleRecord> => {
+    const parsed = saleIdSchema.safeParse(payload)
+    if (!parsed.success) return ipcFail('Invalid sale.')
+
+    try {
+      const sale = loadSale(parsed.data.id)
+      if (!sale) return ipcFail('Sale not found.')
+      return ipcOk(sale)
+    } catch (error) {
+      console.error('sales:get failed', error)
+      return ipcFail('Could not load the sale.')
+    }
+  })
+
+  ipcMain.handle(
+    IPC.sales.print,
+    async (_event, payload: unknown): Promise<IpcResult<null>> => {
+      const parsed = saleIdSchema.safeParse(payload)
+      if (!parsed.success) return ipcFail('Invalid sale.')
+
+      try {
+        const sale = loadSale(parsed.data.id)
+        if (!sale) return ipcFail('Sale not found.')
+        await printReceipt(sale.id, loadSettings().printerName)
+        return ipcOk(null)
+      } catch (error) {
+        console.error('sales:print failed', error)
+        return ipcFail(
+          error instanceof Error ? error.message : 'Could not print the receipt.',
+        )
       }
     },
   )

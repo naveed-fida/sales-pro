@@ -8,7 +8,12 @@ import type {
 } from '@shared/schemas/catalog'
 import type { ReceivePurchaseInput } from '@shared/schemas/purchases'
 import type { ClockStatus } from '@shared/schemas/clock'
-import type { CompleteSaleInput, SaveHoldInput } from '@shared/schemas/sales'
+import type {
+  CompleteSaleInput,
+  ListSalesInput,
+  ReceiptReady,
+  SaveHoldInput,
+} from '@shared/schemas/sales'
 import type { SaveSettingsInput } from '@shared/schemas/settings'
 import type { SaveSupplierInput } from '@shared/schemas/suppliers'
 
@@ -68,6 +73,12 @@ const api = {
     listHolds: () => ipcRenderer.invoke(IPC.sales.listHolds),
     saveHold: (input: SaveHoldInput) => ipcRenderer.invoke(IPC.sales.saveHold, input),
     deleteHold: (id: number) => ipcRenderer.invoke(IPC.sales.deleteHold, { id }),
+    list: (input: ListSalesInput) => ipcRenderer.invoke(IPC.sales.list, input),
+    get: (id: number) => ipcRenderer.invoke(IPC.sales.get, { id }),
+    print: (id: number) => ipcRenderer.invoke(IPC.sales.print, { id }),
+  },
+  receipt: {
+    ready: (result: ReceiptReady) => ipcRenderer.send(IPC.receipt.ready, result),
   },
 }
 

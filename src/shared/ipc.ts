@@ -44,5 +44,11 @@ export const IPC = {
     listHolds: 'sales:holds:list',
     saveHold: 'sales:holds:save',
     deleteHold: 'sales:holds:delete',
+    list: 'sales:list',
+    get: 'sales:get',
+    print: 'sales:print',
+  },
+  receipt: {
+    ready: 'receipt:ready',
   },
 } as const

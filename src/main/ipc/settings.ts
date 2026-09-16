@@ -25,7 +25,7 @@ function parseReorderPieces(raw: string | undefined): number {
   return Math.round(fromMilli(milli))
 }
 
-function loadSettings(): AppSettings {
+export function loadSettings(): AppSettings {
   const stored = readStored()
 
   return {

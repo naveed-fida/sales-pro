@@ -157,6 +157,71 @@ export const completedSaleSchema = z.object({
   changeRs: z.number().int(),
 })
 
+export const saleIdSchema = z.object({
+  id: z.number().int().positive(),
+})
+
+export const saleStatus = ['completed', 'partially_returned', 'returned'] as const
+
+export const saleItemRecordSchema = z.object({
+  id: z.number().int().positive(),
+  variantId: z.number().int().positive(),
+  productName: z.string(),
+  barcode: z.string(),
+  size: z.string().nullable(),
+  colour: z.string().nullable(),
+  unit: z.enum(productUnits),
+  quantityMilli: z.number().int(),
+  unitPriceRs: z.number().int(),
+  lineDiscountRs: z.number().int(),
+  lineTotalRs: z.number().int(),
+})
+
+export const saleListItemSchema = z.object({
+  id: z.number().int().positive(),
+  billNo: z.number().int().positive(),
+  phone: z.string().nullable(),
+  status: z.enum(saleStatus),
+  createdAt: z.coerce.date(),
+  itemCount: z.number().int().nonnegative(),
+  discountRs: z.number().int(),
+  totalRs: z.number().int(),
+  tenderedRs: z.number().int(),
+  changeRs: z.number().int(),
+})
+
+export const saleRecordSchema = saleListItemSchema.extend({
+  items: z.array(saleItemRecordSchema),
+})
+
+export const SALES_PAGE_SIZE = 50
+
+export const saleListStatusFilter = ['all', ...saleStatus] as const
+
+const dayStamp = z
+  .string()
+  .refine((value) => value === '' || /^\d{4}-\d{2}-\d{2}$/.test(value), 'Invalid date')
+
+export const listSalesSchema = z.object({
+  search: z.string().trim().max(40, 'Search is too long'),
+  page: z.number().int().positive().max(10_000),
+  from: dayStamp,
+  to: dayStamp,
+  status: z.enum(saleListStatusFilter),
+})
+
+export const saleListPageSchema = z.object({
+  items: z.array(saleListItemSchema),
+  total: z.number().int().nonnegative(),
+  page: z.number().int().positive(),
+  pageSize: z.number().int().positive(),
+})
+
+export const receiptReadySchema = z.discriminatedUnion('ok', [
+  z.object({ ok: z.literal(true) }),
+  z.object({ ok: z.literal(false), error: z.string() }),
+])
+
 export type PosCatalogVariant = z.infer<typeof posCatalogVariantSchema>
 export type CartItemInput = z.input<typeof cartItemSchema>
 export type CartItem = z.infer<typeof cartItemSchema>
@@ -168,3 +233,11 @@ export type HoldId = z.infer<typeof holdIdSchema>
 export type HeldSaleItem = z.infer<typeof heldSaleItemSchema>
 export type HeldSale = z.infer<typeof heldSaleSchema>
 export type CompletedSale = z.infer<typeof completedSaleSchema>
+export type SaleId = z.infer<typeof saleIdSchema>
+export type SaleItemRecord = z.infer<typeof saleItemRecordSchema>
+export type SaleListItem = z.infer<typeof saleListItemSchema>
+export type SaleRecord = z.infer<typeof saleRecordSchema>
+export type ListSalesInput = z.infer<typeof listSalesSchema>
+export type SaleListStatusFilter = (typeof saleListStatusFilter)[number]
+export type SaleListPage = z.infer<typeof saleListPageSchema>
+export type ReceiptReady = z.infer<typeof receiptReadySchema>

@@ -4,6 +4,7 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
 const shared = resolve(__dirname, 'src/shared')
+const renderer = resolve(__dirname, 'src/renderer')
 
 export default defineConfig({
   main: {
@@ -31,6 +32,12 @@ export default defineConfig({
       // preload stay readable for legible production stack traces, but the
       // renderer ships to users and should be minified.
       minify: 'esbuild',
+      rollupOptions: {
+        input: {
+          index: resolve(renderer, 'index.html'),
+          receipt: resolve(renderer, 'receipt.html'),
+        },
+      },
     },
   },
 })

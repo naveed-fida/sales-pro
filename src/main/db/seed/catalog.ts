@@ -1,16 +1,15 @@
-import { and, eq } from 'drizzle-orm'
 import { toMilli, type ProductUnit } from '../../../shared/quantity.ts'
 import { categories, products, productVariants } from '../schema.ts'
 import type { AppDatabase } from '../sqlite.ts'
 
-type SeedVariant = {
+export type SeedVariant = {
   size?: string
   colour?: string
   salePriceRs: number
   reorderLevel: number
 }
 
-type SeedProduct = {
+export type SeedProduct = {
   name: string
   category: string
   unit: ProductUnit
@@ -18,7 +17,7 @@ type SeedProduct = {
   variants: SeedVariant[]
 }
 
-const CATEGORIES = [
+export const SEED_CATEGORIES = [
   "Men's Wear",
   "Women's Wear",
   'Kids',
@@ -26,7 +25,7 @@ const CATEGORIES = [
   'Accessories',
 ] as const
 
-const PRODUCTS: SeedProduct[] = [
+export const SEED_PRODUCTS: SeedProduct[] = [
   {
     name: "Men's Cotton Kurta",
     category: "Men's Wear",
@@ -172,69 +171,26 @@ const PRODUCTS: SeedProduct[] = [
 export type CatalogSeedSummary = {
   categoriesCreated: number
   productsCreated: number
-  productsSkipped: number
 }
 
-function nextNumericBarcode(barcodes: string[]): number {
-  const numeric = barcodes
-    .filter((code) => /^\d+$/.test(code))
-    .map((code) => Number.parseInt(code, 10))
-  const highest = numeric.length > 0 ? Math.max(...numeric) : undefined
-  if (highest === undefined || highest < 1_000_000) return 1_000_001
-  return highest + 1
-}
-
-/** Inserts sample categories and products. Existing names are left untouched. */
+/** Inserts the sample catalog. Call after clearBusinessData so names are free. */
 export function seedCatalog(db: AppDatabase): CatalogSeedSummary {
   const categoryIds = new Map<string, number>()
-  let categoriesCreated = 0
-  let productsCreated = 0
-  let productsSkipped = 0
+  let nextBarcode = 1_000_001
 
-  for (const name of CATEGORIES) {
-    const existing = db
-      .select({ id: categories.id })
-      .from(categories)
-      .where(eq(categories.name, name))
-      .get()
-
-    if (existing) {
-      categoryIds.set(name, existing.id)
-      continue
-    }
-
+  for (const name of SEED_CATEGORIES) {
     const row = db
       .insert(categories)
       .values({ name })
       .returning({ id: categories.id })
       .get()
     categoryIds.set(name, row.id)
-    categoriesCreated += 1
   }
 
-  const existingBarcodes = db
-    .select({ barcode: productVariants.barcode })
-    .from(productVariants)
-    .all()
-    .map((row) => row.barcode)
-  const used = new Set(existingBarcodes)
-  let next = nextNumericBarcode(existingBarcodes)
-
-  for (const product of PRODUCTS) {
+  for (const product of SEED_PRODUCTS) {
     const categoryId = categoryIds.get(product.category)
     if (categoryId === undefined) {
       throw new Error(`Seed category missing: ${product.category}`)
-    }
-
-    const existing = db
-      .select({ id: products.id })
-      .from(products)
-      .where(and(eq(products.name, product.name), eq(products.categoryId, categoryId)))
-      .get()
-
-    if (existing) {
-      productsSkipped += 1
-      continue
     }
 
     db.transaction((tx) => {
@@ -250,26 +206,23 @@ export function seedCatalog(db: AppDatabase): CatalogSeedSummary {
         .get()
 
       for (const variant of product.variants) {
-        while (used.has(String(next))) next += 1
-        const barcode = String(next)
-        next += 1
-        used.add(barcode)
-
         tx.insert(productVariants)
           .values({
             productId: inserted.id,
-            barcode,
+            barcode: String(nextBarcode),
             size: variant.size ?? null,
             colour: variant.colour ?? null,
             salePriceRs: variant.salePriceRs,
             reorderLevelMilli: toMilli(variant.reorderLevel),
           })
           .run()
+        nextBarcode += 1
       }
     })
-
-    productsCreated += 1
   }
 
-  return { categoriesCreated, productsCreated, productsSkipped }
+  return {
+    categoriesCreated: SEED_CATEGORIES.length,
+    productsCreated: SEED_PRODUCTS.length,
+  }
 }

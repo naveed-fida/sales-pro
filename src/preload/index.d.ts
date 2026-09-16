@@ -20,7 +20,11 @@ import type {
   CompletedSale,
   CompleteSaleInput,
   HeldSale,
+  ListSalesInput,
   PosCatalogVariant,
+  ReceiptReady,
+  SaleListPage,
+  SaleRecord,
   SaveHoldInput,
 } from '@shared/schemas/sales'
 import type { AppSettings, Printer, SaveSettingsInput } from '@shared/schemas/settings'
@@ -68,6 +72,12 @@ export type Api = {
     listHolds: () => Promise<IpcResult<HeldSale[]>>
     saveHold: (input: SaveHoldInput) => Promise<IpcResult<HeldSale>>
     deleteHold: (id: number) => Promise<IpcResult<null>>
+    list: (input: ListSalesInput) => Promise<IpcResult<SaleListPage>>
+    get: (id: number) => Promise<IpcResult<SaleRecord>>
+    print: (id: number) => Promise<IpcResult<null>>
+  }
+  receipt: {
+    ready: (result: ReceiptReady) => void
   }
 }
 

@@ -1,34 +1,12 @@
 import { eq } from 'drizzle-orm'
 import { roundRs } from '../../../shared/money.ts'
-import { QUANTITY_SCALE, toMilli } from '../../../shared/quantity.ts'
-import {
-  productVariants,
-  products,
-  purchaseItems,
-  purchases,
-  stockMovements,
-  suppliers,
-} from '../schema.ts'
+import { toMilli } from '../../../shared/quantity.ts'
+import { productVariants, purchaseItems, purchases, stockMovements, suppliers } from '../schema.ts'
 import type { AppDatabase } from '../sqlite.ts'
-
-function quantityCostRs(quantityMilli: number, unitCostRs: number): number {
-  return roundRs((quantityMilli * unitCostRs) / QUANTITY_SCALE)
-}
-
-function weightedAverageCostRs(
-  existingQtyMilli: number,
-  existingAvgCostRs: number,
-  incomingQtyMilli: number,
-  incomingUnitCostRs: number,
-): number {
-  if (incomingQtyMilli <= 0) return existingAvgCostRs
-  if (existingQtyMilli <= 0) return incomingUnitCostRs
-  const totalMilli = existingQtyMilli + incomingQtyMilli
-  return roundRs(
-    (existingQtyMilli * existingAvgCostRs + incomingQtyMilli * incomingUnitCostRs) /
-      totalMilli,
-  )
-}
+import { SEED_PRODUCTS } from './catalog.ts'
+import { quantityCostRs, weightedAverageCostRs } from './cost.ts'
+import { shopTimeDaysAgo } from './dates.ts'
+import { findVariant, type SeedVariantRef } from './find-variant.ts'
 
 type SeedSupplier = {
   name: string
@@ -36,10 +14,7 @@ type SeedSupplier = {
   address: string
 }
 
-type SeedLine = {
-  productName: string
-  size?: string
-  colour?: string
+type SeedLine = SeedVariantRef & {
   quantity: number
   unitCostRs: number
 }
@@ -57,121 +32,58 @@ const SUPPLIERS: SeedSupplier[] = [
   },
 ]
 
-const OPENING_LINES: SeedLine[] = [
-  {
-    productName: "Men's Cotton Kurta",
-    size: 'M',
-    colour: 'White',
-    quantity: 12,
-    unitCostRs: 1400,
-  },
-  {
-    productName: "Men's Cotton Kurta",
-    size: 'L',
-    colour: 'Navy',
-    quantity: 8,
-    unitCostRs: 1500,
-  },
-  {
-    productName: 'Ladies Lawn Suit 3pc',
-    colour: 'Mint',
-    quantity: 6,
-    unitCostRs: 2800,
-  },
-  {
-    productName: 'Cotton Lawn',
-    colour: 'White',
-    quantity: 25,
-    unitCostRs: 280,
-  },
-  {
-    productName: 'Linen',
-    colour: 'Beige',
-    quantity: 10,
-    unitCostRs: 520,
-  },
-]
+const AL_NOOR_CATEGORIES = new Set(["Men's Wear", 'Kids', 'Unstitched'])
+
+function openingLinesFor(categories: Set<string>): SeedLine[] {
+  return SEED_PRODUCTS.filter((product) => categories.has(product.category)).flatMap(
+    (product) =>
+      product.variants.map((variant) => ({
+        productName: product.name,
+        size: variant.size,
+        colour: variant.colour,
+        quantity: product.unit === 'piece' ? 36 : 50,
+        unitCostRs: roundRs(variant.salePriceRs * 0.6),
+      })),
+  )
+}
 
 export type PurchasesSeedSummary = {
   suppliersCreated: number
   purchasesCreated: number
 }
 
-function findVariant(
+function receivePurchase(
   db: AppDatabase,
-  line: SeedLine,
-): { id: number; quantityMilli: number; avgCostRs: number } | undefined {
-  const product = db
-    .select({ id: products.id })
-    .from(products)
-    .where(eq(products.name, line.productName))
-    .get()
-  if (!product) return undefined
-
-  const rows = db
-    .select()
-    .from(productVariants)
-    .where(eq(productVariants.productId, product.id))
-    .all()
-
-  return rows.find((variant) => {
-    const sizeOk = line.size ? variant.size === line.size : true
-    const colourOk = line.colour ? variant.colour === line.colour : true
-    return sizeOk && colourOk
-  })
-}
-
-/** Inserts sample suppliers and one opening purchase. Existing rows are left alone. */
-export function seedPurchases(db: AppDatabase): PurchasesSeedSummary {
-  let suppliersCreated = 0
-
-  for (const supplier of SUPPLIERS) {
-    const existing = db
-      .select({ id: suppliers.id })
-      .from(suppliers)
-      .where(eq(suppliers.name, supplier.name))
-      .get()
-    if (existing) continue
-
-    db.insert(suppliers).values(supplier).run()
-    suppliersCreated += 1
-  }
-
-  const alreadyPurchased = db.select({ id: purchases.id }).from(purchases).limit(1).get()
-  if (alreadyPurchased) {
-    return { suppliersCreated, purchasesCreated: 0 }
-  }
-
-  const supplier = db
-    .select({ id: suppliers.id })
-    .from(suppliers)
-    .where(eq(suppliers.name, 'Al-Noor Textiles'))
-    .get()
-  if (!supplier) {
-    return { suppliersCreated, purchasesCreated: 0 }
-  }
-
-  const lines = OPENING_LINES.map((line) => {
+  input: {
+    supplierId: number
+    purchasedAt: Date
+    note: string
+    lines: SeedLine[]
+  },
+): void {
+  const lines = input.lines.map((line) => {
     const variant = findVariant(db, line)
-    if (!variant) return null
+    if (!variant) {
+      throw new Error(`Seed variant missing: ${line.productName}`)
+    }
     const quantityMilli = toMilli(line.quantity)
-    const lineTotal = quantityCostRs(quantityMilli, line.unitCostRs)
-    return { variant, quantityMilli, unitCostRs: line.unitCostRs, lineTotal }
-  }).filter((line) => line !== null)
-
-  if (lines.length === 0) {
-    return { suppliersCreated, purchasesCreated: 0 }
-  }
+    return {
+      variant,
+      quantityMilli,
+      unitCostRs: line.unitCostRs,
+      lineTotal: quantityCostRs(quantityMilli, line.unitCostRs),
+    }
+  })
 
   db.transaction((tx) => {
     const inserted = tx
       .insert(purchases)
       .values({
-        supplierId: supplier.id,
-        purchasedAt: new Date(),
+        supplierId: input.supplierId,
+        purchasedAt: input.purchasedAt,
         discountRs: 0,
         totalRs: lines.reduce((sum, line) => sum + line.lineTotal, 0),
-        note: 'Opening stock',
+        note: input.note,
       })
       .returning({ id: purchases.id })
       .get()
@@ -193,7 +105,9 @@ export function seedPurchases(db: AppDatabase): PurchasesSeedSummary {
         .from(productVariants)
         .where(eq(productVariants.id, line.variant.id))
         .get()
-      if (!variant) continue
+      if (!variant) {
+        throw new Error('Seed variant disappeared during purchase.')
+      }
 
       tx.update(productVariants)
         .set({
@@ -204,7 +118,7 @@ export function seedPurchases(db: AppDatabase): PurchasesSeedSummary {
             line.quantityMilli,
             line.unitCostRs,
           ),
-          updatedAt: new Date(),
+          updatedAt: input.purchasedAt,
         })
         .where(eq(productVariants.id, line.variant.id))
         .run()
@@ -216,10 +130,48 @@ export function seedPurchases(db: AppDatabase): PurchasesSeedSummary {
           reason: 'purchase',
           sourceTable: 'purchases',
           sourceId: inserted.id,
+          createdAt: input.purchasedAt,
         })
         .run()
     }
   })
+}
 
-  return { suppliersCreated, purchasesCreated: 1 }
+function supplierId(db: AppDatabase, name: string): number {
+  const row = db
+    .select({ id: suppliers.id })
+    .from(suppliers)
+    .where(eq(suppliers.name, name))
+    .get()
+  if (!row) throw new Error(`Seed supplier missing: ${name}`)
+  return row.id
+}
+
+/** Inserts suppliers and two opening purchases covering the whole catalog. */
+export function seedPurchases(db: AppDatabase): PurchasesSeedSummary {
+  for (const supplier of SUPPLIERS) {
+    db.insert(suppliers).values(supplier).run()
+  }
+
+  receivePurchase(db, {
+    supplierId: supplierId(db, 'Al-Noor Textiles'),
+    purchasedAt: shopTimeDaysAgo(18, 10, 30),
+    note: "Opening stock — men's, kids, cloth",
+    lines: openingLinesFor(AL_NOOR_CATEGORIES),
+  })
+
+  receivePurchase(db, {
+    supplierId: supplierId(db, 'City Wholesale'),
+    purchasedAt: shopTimeDaysAgo(10, 15, 0),
+    note: 'Opening stock — ladies and accessories',
+    lines: openingLinesFor(
+      new Set(
+        SEED_PRODUCTS.map((product) => product.category).filter(
+          (name) => !AL_NOOR_CATEGORIES.has(name),
+        ),
+      ),
+    ),
+  })
+
+  return { suppliersCreated: SUPPLIERS.length, purchasesCreated: 2 }
 }

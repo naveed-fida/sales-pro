@@ -44,6 +44,7 @@ import {
 import { UNIT_LABELS } from '@/features/products/unit-labels'
 import { labelVariantsQueryKey, productsQueryKey } from '@/features/products/use-catalog'
 import { purchaseCatalogQueryKey } from '@/features/purchases/use-purchases'
+import { salesQueryKey } from '@/features/sales/use-sales'
 import { POS_HOTKEYS } from '@/lib/hotkeys'
 import { HoldRecallDialog } from './hold-recall-dialog'
 import {
@@ -256,6 +257,7 @@ function PosSale({ variants }: { variants: PosCatalogVariant[] }): React.JSX.Ele
       queryClient.invalidateQueries({ queryKey: productsQueryKey }),
       queryClient.invalidateQueries({ queryKey: labelVariantsQueryKey }),
       queryClient.invalidateQueries({ queryKey: holdsQueryKey }),
+      queryClient.invalidateQueries({ queryKey: salesQueryKey }),
     ])
   }
 
@@ -350,6 +352,8 @@ function PosSale({ variants }: { variants: PosCatalogVariant[] }): React.JSX.Ele
     await invalidateStock()
     toast.success(`Bill ${result.data.billNo} · ${formatRs(result.data.totalRs)}`)
     clearSale()
+    const printed = await window.api.sales.print(result.data.id)
+    if (!printed.ok) toast.error(printed.error.message)
   }
 
   function requestComplete(): void {
@@ -588,7 +592,7 @@ function PosSale({ variants }: { variants: PosCatalogVariant[] }): React.JSX.Ele
         <div className="flex flex-col gap-1">
           <h1 className="text-2xl font-semibold tracking-tight">POS</h1>
           <p className="text-sm text-muted-foreground">
-            Scan or search, Enter to add, F9 for cash, F12 to complete.
+            Scan or search, Enter to add, F9 for cash, F12 to complete and print.
           </p>
         </div>
 
