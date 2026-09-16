@@ -6,8 +6,9 @@ import {
   PRODUCT_IMAGE_EXT,
   PRODUCT_IMAGE_MAX_BYTES,
 } from '@shared/product-image'
+import { SETTING_KEYS } from '@shared/schemas/settings'
 import { getDatabasePath, getDb } from '../db/client'
-import { products } from '../db/schema'
+import { appSettings, products } from '../db/schema'
 import { ensureProductImagesDir, productImageFilePath } from './paths'
 
 export function hashedWebpFileName(bytes: Uint8Array): string {
@@ -52,6 +53,16 @@ export function unlinkProductImageIfOrphaned(
         .get()
 
   if (stillUsed) return
+
+  const usedAsShopLogo = db
+    .select({ key: appSettings.key })
+    .from(appSettings)
+    .where(
+      and(eq(appSettings.key, SETTING_KEYS.shopLogo), eq(appSettings.value, fileName)),
+    )
+    .get()
+
+  if (usedAsShopLogo) return
 
   try {
     const filePath = productImageFilePath(getDatabasePath(), fileName)

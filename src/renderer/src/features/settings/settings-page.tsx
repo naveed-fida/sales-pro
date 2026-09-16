@@ -22,7 +22,7 @@ export function SettingsPage(): React.JSX.Element {
       <div className="mb-6 flex flex-col gap-1">
         <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
         <p className="text-sm text-muted-foreground">
-          Shop details, receipt footer, printer, and the default low-stock level.
+          Shop logo and details, receipt footer, printer, and the default low-stock level.
         </p>
       </div>
 

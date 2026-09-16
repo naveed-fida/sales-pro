@@ -1,6 +1,8 @@
+import { useEffect, useRef, useState } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQueryClient } from '@tanstack/react-query'
+import { ImagePlus } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   saveSettingsSchema,
@@ -39,12 +41,14 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { downscaleProductImage } from '@/features/products/downscale-image'
+import { ProductImage } from '@/features/products/product-image'
 import { settingsQueryKey } from './use-settings'
 
 /** Radix Select forbids an empty item value, so "system default" needs a sentinel. */
 const SYSTEM_PRINTER = '__system_default__'
 
-type SettingsFormValues = AppSettings
+type SettingsFormValues = Omit<AppSettings, 'shopLogo'>
 
 function printerOptions(printers: Printer[], savedName: string): Printer[] {
   if (!savedName || printers.some((printer) => printer.name === savedName)) {
@@ -87,11 +91,32 @@ export function SettingsForm({
     formState: { errors, isSubmitting },
   } = form
 
+  const [pendingBytes, setPendingBytes] = useState<Uint8Array<ArrayBuffer> | null>(null)
+  const [pendingPreview, setPendingPreview] = useState<string | null>(null)
+  const [removeSaved, setRemoveSaved] = useState(false)
+  const [readingLogo, setReadingLogo] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    return () => {
+      if (pendingPreview) URL.revokeObjectURL(pendingPreview)
+    }
+  }, [pendingPreview])
+
+  function discardPendingPreview(): void {
+    setPendingBytes(null)
+    setPendingPreview((current) => {
+      if (current) URL.revokeObjectURL(current)
+      return null
+    })
+    setRemoveSaved(false)
+  }
+
   async function onSubmit(values: SettingsFormValues): Promise<void> {
     const result = await window.api.settings.save(values)
 
     if (!result.ok) {
-      if (result.error.field && result.error.field in settings) {
+      if (result.error.field && result.error.field in values) {
         setError(result.error.field as keyof SettingsFormValues, {
           type: 'server',
           message: result.error.message,
@@ -103,8 +128,61 @@ export function SettingsForm({
       return
     }
 
-    queryClient.setQueryData(settingsQueryKey, result.data)
+    let saved = result.data
+
+    if (pendingBytes) {
+      const logoResult = await window.api.settings.saveLogo({ bytes: pendingBytes })
+      if (!logoResult.ok) {
+        queryClient.setQueryData(settingsQueryKey, saved)
+        toast.success('Settings saved')
+        toast.error(logoResult.error.message)
+        return
+      }
+      saved = logoResult.data
+    } else if (removeSaved && settings.shopLogo) {
+      const cleared = await window.api.settings.clearLogo()
+      if (!cleared.ok) {
+        queryClient.setQueryData(settingsQueryKey, saved)
+        toast.success('Settings saved')
+        toast.error(cleared.error.message)
+        return
+      }
+      saved = cleared.data
+    }
+
+    discardPendingPreview()
+    queryClient.setQueryData(settingsQueryKey, saved)
     toast.success('Settings saved')
+  }
+
+  async function onLogoChosen(event: React.ChangeEvent<HTMLInputElement>): Promise<void> {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+
+    setReadingLogo(true)
+    try {
+      const bytes = await downscaleProductImage(file)
+      setPendingBytes(bytes)
+      setPendingPreview((current) => {
+        if (current) URL.revokeObjectURL(current)
+        return URL.createObjectURL(new Blob([bytes], { type: 'image/webp' }))
+      })
+      setRemoveSaved(false)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not read that image.')
+    } finally {
+      setReadingLogo(false)
+    }
+  }
+
+  function clearLogo(): void {
+    setPendingBytes(null)
+    setPendingPreview((current) => {
+      if (current) URL.revokeObjectURL(current)
+      return null
+    })
+    setRemoveSaved(true)
   }
 
   return (
@@ -117,11 +195,61 @@ export function SettingsForm({
         <CardHeader>
           <CardTitle>Shop</CardTitle>
           <CardDescription>
-            Printed at the top of receipts so customers know who they bought from.
+            Logo in the app header. Name, address, and phone print at the top of receipts.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <FieldGroup>
+            <div className="flex items-start gap-4">
+              <ProductImage
+                fileName={removeSaved ? null : settings.shopLogo || null}
+                previewUrl={pendingPreview}
+                alt={settings.shopName || 'Shop logo'}
+                fit="contain"
+                className="size-24 shrink-0 rounded-xl bg-background ring-1 ring-foreground/10"
+              />
+              <Field>
+                <FieldLabel>Logo</FieldLabel>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    disabled={readingLogo}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <ImagePlus />
+                    {readingLogo
+                      ? 'Reading…'
+                      : pendingPreview || (settings.shopLogo && !removeSaved)
+                        ? 'Change'
+                        : 'Add logo'}
+                  </Button>
+                  {pendingPreview || (settings.shopLogo && !removeSaved) ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      disabled={readingLogo}
+                      onClick={clearLogo}
+                    >
+                      Remove
+                    </Button>
+                  ) : null}
+                </div>
+                <FieldDescription>
+                  JPEG, PNG or WebP. Shown in the header. Shrunk on this computer before
+                  saving.
+                </FieldDescription>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={(event) => void onLogoChosen(event)}
+                />
+              </Field>
+            </div>
             <Field data-invalid={!!errors.shopName}>
               <FieldLabel htmlFor="shopName">Shop name</FieldLabel>
               <Input
@@ -265,7 +393,7 @@ export function SettingsForm({
           </Field>
         </CardContent>
         <CardFooter className="justify-end">
-          <Button type="submit" disabled={isSubmitting}>
+          <Button type="submit" disabled={isSubmitting || readingLogo}>
             {isSubmitting ? 'Saving…' : 'Save settings'}
           </Button>
         </CardFooter>

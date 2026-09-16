@@ -17,7 +17,7 @@ import type {
   ReceiptReady,
   SaveHoldInput,
 } from '@shared/schemas/sales'
-import type { SaveSettingsInput } from '@shared/schemas/settings'
+import type { SaveSettingsInput, SaveShopLogoInput } from '@shared/schemas/settings'
 import type { SaveSupplierInput } from '@shared/schemas/suppliers'
 
 // Everything the renderer can reach is enumerated here. Channels come from
@@ -28,6 +28,9 @@ const api = {
   settings: {
     get: () => ipcRenderer.invoke(IPC.settings.get),
     save: (input: SaveSettingsInput) => ipcRenderer.invoke(IPC.settings.save, input),
+    saveLogo: (input: SaveShopLogoInput) =>
+      ipcRenderer.invoke(IPC.settings.saveLogo, input),
+    clearLogo: () => ipcRenderer.invoke(IPC.settings.clearLogo),
     listPrinters: () => ipcRenderer.invoke(IPC.settings.listPrinters),
   },
   clock: {

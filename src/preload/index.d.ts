@@ -37,7 +37,12 @@ import type {
   SaleRecord,
   SaveHoldInput,
 } from '@shared/schemas/sales'
-import type { AppSettings, Printer, SaveSettingsInput } from '@shared/schemas/settings'
+import type {
+  AppSettings,
+  Printer,
+  SaveSettingsInput,
+  SaveShopLogoInput,
+} from '@shared/schemas/settings'
 import type { SaveSupplierInput, Supplier } from '@shared/schemas/suppliers'
 
 export type Api = {
@@ -45,6 +50,8 @@ export type Api = {
   settings: {
     get: () => Promise<IpcResult<AppSettings>>
     save: (input: SaveSettingsInput) => Promise<IpcResult<AppSettings>>
+    saveLogo: (input: SaveShopLogoInput) => Promise<IpcResult<AppSettings>>
+    clearLogo: () => Promise<IpcResult<AppSettings>>
     listPrinters: () => Promise<IpcResult<Printer[]>>
   }
   clock: {

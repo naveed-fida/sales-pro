@@ -1,8 +1,8 @@
 /**
- * Product photos live on disk, not in SQLite. The renderer never sees a
- * filesystem path: it sends WebP bytes over IPC and loads them back through
- * this custom protocol, which main maps onto the images directory next to
- * the database file.
+ * Product photos and the shop logo live on disk, not in SQLite. The renderer
+ * never sees a filesystem path: it sends WebP bytes over IPC and loads them
+ * back through this custom protocol, which main maps onto the images
+ * directory next to the database file.
  */
 export const PRODUCT_IMAGE_SCHEME = 'product-image'
 export const PRODUCT_IMAGE_HOST = 'product'

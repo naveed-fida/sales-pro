@@ -7,6 +7,8 @@ export const IPC = {
   settings: {
     get: 'settings:get',
     save: 'settings:save',
+    saveLogo: 'settings:saveLogo',
+    clearLogo: 'settings:clearLogo',
     listPrinters: 'settings:listPrinters',
   },
   clock: {
