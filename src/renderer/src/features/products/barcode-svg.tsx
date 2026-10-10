@@ -18,14 +18,14 @@ export function BarcodeSvg({
       JsBarcode(svg, value, {
         format: 'CODE128',
         displayValue: true,
-        fontSize: 11,
-        height: 32,
-        width: 1.15,
-        margin: 0,
+        fontSize: 9,
+        height: 26,
+        width: 1,
+        margin: 2,
         background: '#ffffff',
         lineColor: '#000000',
         font: 'monospace',
-        textMargin: 1,
+        textMargin: 0,
       })
     } catch {
       svg.replaceChildren()

@@ -13,12 +13,12 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { LABELS_PER_PAGE, variantOptionLabel } from './label-layout'
+import { LABEL_HEIGHT_MM, LABEL_WIDTH_MM, variantOptionLabel } from './label-layout'
 import { LabelSheets } from './label-sheet'
 import { useLabelVariantsQuery } from './use-catalog'
 
 const EMPTY_VARIANTS: LabelVariant[] = []
-const PREVIEW_SCALE = 0.38
+const PREVIEW_SCALE = 2
 
 function expandCopies(
   variants: LabelVariant[],
@@ -67,7 +67,6 @@ export function LabelsDialog({
   )
   const stickers = useMemo(() => expandCopies(variants, copies), [copies, variants])
   const selectedCount = stickers.length
-  const pageCount = selectedCount === 0 ? 0 : Math.ceil(selectedCount / LABELS_PER_PAGE)
 
   function setCopyCount(variantId: number, value: number): void {
     const next = Number.isFinite(value) ? Math.min(99, Math.max(0, Math.round(value))) : 0
@@ -93,8 +92,8 @@ export function LabelsDialog({
         <DialogHeader>
           <DialogTitle>Barcode labels</DialogTitle>
           <DialogDescription>
-            24 labels per A4 sheet, Code 128. Pick a regular printer in the print dialog,
-            not the receipt printer.
+            {LABEL_WIDTH_MM} × {LABEL_HEIGHT_MM} mm strip labels, Code 128. All selected
+            copies print consecutively in one batch.
           </DialogDescription>
         </DialogHeader>
 
@@ -204,9 +203,7 @@ export function LabelsDialog({
           <p className="text-sm text-muted-foreground">
             {selectedCount === 0
               ? 'No labels selected'
-              : `${selectedCount} label${selectedCount === 1 ? '' : 's'} · ${pageCount} sheet${
-                  pageCount === 1 ? '' : 's'
-                }`}
+              : `${selectedCount} label${selectedCount === 1 ? '' : 's'} · one print batch`}
           </p>
           <Button
             type="button"
@@ -221,7 +218,7 @@ export function LabelsDialog({
 
       {open && selectedCount > 0
         ? createPortal(
-            <div className="hidden print:block">
+            <div className="label-print-root hidden print:block">
               <LabelSheets variants={stickers} shopName={shopName} />
             </div>,
             document.body,
