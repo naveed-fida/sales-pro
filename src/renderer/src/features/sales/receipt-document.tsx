@@ -1,3 +1,4 @@
+import { Fragment } from 'react'
 import { format } from 'date-fns'
 import { formatRs } from '@shared/money'
 import { formatQuantity } from '@shared/quantity'
@@ -14,7 +15,9 @@ export function ReceiptDocument({
   sale: SaleRecord
   settings: AppSettings
 }): React.JSX.Element {
-  const subtotal = sale.totalRs + sale.discountRs
+  const itemDiscountRs = sale.items.reduce((sum, item) => sum + item.lineDiscountRs, 0)
+  const totalSavingsRs = itemDiscountRs + sale.discountRs
+  const subtotal = sale.totalRs + totalSavingsRs
 
   return (
     <ReceiptFrame settings={settings}>
@@ -30,21 +33,25 @@ export function ReceiptDocument({
         <span className="text-right font-medium">Qty</span>
         <span className="text-right font-medium">Amt</span>
         {sale.items.map((item) => (
-          <div key={item.id} className="contents">
-            <span>
-              {variantOptionLabel(item)}
-              {item.lineDiscountRs > 0 ? (
-                <span className="block text-[10px]">
-                  less {formatRs(item.lineDiscountRs)}
-                </span>
-              ) : null}
-            </span>
-            <span className="text-right">
-              {formatQuantity(item.quantityMilli, item.unit)}
-              {item.unit === 'piece' ? '' : ` ${UNIT_LABELS[item.unit].toLowerCase()}`}
-            </span>
-            <span className="text-right">{formatRs(item.lineTotalRs)}</span>
-          </div>
+          <Fragment key={item.id}>
+            <div className="contents">
+              <span>{variantOptionLabel(item)}</span>
+              <span className="text-right">
+                {formatQuantity(item.quantityMilli, item.unit)}
+                {item.unit === 'piece' ? '' : ` ${UNIT_LABELS[item.unit].toLowerCase()}`}
+              </span>
+              <span className="text-right">
+                {formatRs(item.lineTotalRs + item.lineDiscountRs)}
+              </span>
+            </div>
+            {item.lineDiscountRs > 0 ? (
+              <div className="contents text-[10px]">
+                <span>Item discount</span>
+                <span />
+                <span className="text-right">−{formatRs(item.lineDiscountRs)}</span>
+              </div>
+            ) : null}
+          </Fragment>
         ))}
       </div>
 
@@ -55,10 +62,10 @@ export function ReceiptDocument({
           <span>Subtotal</span>
           <span>{formatRs(subtotal)}</span>
         </div>
-        {sale.discountRs > 0 ? (
+        {totalSavingsRs > 0 ? (
           <div className="flex justify-between">
-            <span>Discount</span>
-            <span>{formatRs(sale.discountRs)}</span>
+            <span>Total savings</span>
+            <span>−{formatRs(totalSavingsRs)}</span>
           </div>
         ) : null}
         <div className="flex justify-between font-semibold">
