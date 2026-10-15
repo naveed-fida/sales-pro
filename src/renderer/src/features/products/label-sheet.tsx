@@ -12,7 +12,7 @@ function LabelSticker({
   const detail = [variant.size, variant.colour].filter(Boolean).join(' · ')
 
   return (
-    <div className="label-print-page flex h-[25mm] w-[38mm] shrink-0 flex-col overflow-hidden bg-white px-[1mm] py-[0.75mm] text-black ring-1 ring-neutral-300 print:ring-0">
+    <div className="label-print-page flex h-[28mm] w-[38mm] shrink-0 flex-col overflow-hidden bg-white px-[1mm] py-[0.75mm] text-black ring-1 ring-neutral-300 print:ring-0">
       {shopName ? (
         <p className="truncate text-[7px] leading-2 text-neutral-600">{shopName}</p>
       ) : null}
