@@ -64,7 +64,7 @@ export function ReceiptDocument({
         </div>
         {totalSavingsRs > 0 ? (
           <div className="flex justify-between">
-            <span>Total savings</span>
+            <span>Total discount</span>
             <span>−{formatRs(totalSavingsRs)}</span>
           </div>
         ) : null}
