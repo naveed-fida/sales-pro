@@ -11,15 +11,16 @@ import { useQueryClient } from '@tanstack/react-query'
 import { format } from 'date-fns'
 import { Plus, Trash2 } from 'lucide-react'
 import { useHotkeys } from 'react-hotkeys-hook'
-import { useNavigate } from 'react-router'
+import { useNavigate, useParams } from 'react-router'
 import { toast } from 'sonner'
 import { cn } from 'cn'
 import { lineTotalRs } from '@shared/cost'
 import { formatRs } from '@shared/money'
-import { formatQuantity, toMilli } from '@shared/quantity'
+import { formatQuantity, fromMilli, toMilli } from '@shared/quantity'
 import {
   receivePurchaseSchema,
   type PurchaseCatalogVariant,
+  type PurchaseRecord,
   type ReceivePurchase,
   type ReceivePurchaseInput,
 } from '@shared/schemas/purchases'
@@ -61,8 +62,10 @@ import { NumberEditDialog } from '@/components/number-edit-dialog'
 import { SupplierForm } from './supplier-form'
 import {
   purchaseCatalogQueryKey,
+  purchaseQueryKey,
   purchasesQueryKey,
   usePurchaseCatalogQuery,
+  usePurchaseQuery,
 } from './use-purchases'
 import { useSuppliersQuery } from './use-suppliers'
 
@@ -88,12 +91,42 @@ function defaultPurchaseCost(
   return Number.isFinite(firstCost) && firstCost > 0 ? firstCost : fallback
 }
 
+function quantityFromMilli(
+  milli: number,
+  unit: PurchaseRecord['items'][number]['unit'],
+): number {
+  const display = fromMilli(milli)
+  return unit === 'piece' ? Math.round(display) : display
+}
+
+function valuesFromPurchase(purchase: PurchaseRecord): ReceivePurchaseInput {
+  return {
+    supplierId: purchase.supplierId,
+    purchasedAt: new Date(purchase.purchasedAt),
+    discountRs: purchase.discountRs,
+    note: purchase.note ?? '',
+    items: purchase.items.map((item) => ({
+      variantId: item.variantId,
+      productName: item.productName,
+      barcode: item.barcode,
+      size: item.size,
+      colour: item.colour,
+      unit: item.unit,
+      quantity: quantityFromMilli(item.quantityMilli, item.unit),
+      unitCostRs: item.unitCostRs,
+      discountRs: item.discountRs,
+    })),
+  }
+}
+
 function PurchaseEntryForm({
   suppliers,
   variants,
+  purchase,
 }: {
   suppliers: Supplier[]
   variants: PurchaseCatalogVariant[]
+  purchase: PurchaseRecord | null
 }): React.JSX.Element {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -103,16 +136,19 @@ function PurchaseEntryForm({
   const [selectedIndexRaw, setSelectedIndex] = useState(0)
   const [lineEdit, setLineEdit] = useState<LineEdit | null>(null)
   const [supplierOpen, setSupplierOpen] = useState(false)
+  const editing = purchase !== null
 
   const form = useForm<ReceivePurchaseInput, unknown, ReceivePurchase>({
     resolver: zodResolver(receivePurchaseSchema),
-    defaultValues: {
-      supplierId: suppliers[0]?.id,
-      purchasedAt: new Date(),
-      discountRs: 0,
-      note: '',
-      items: [],
-    },
+    defaultValues: purchase
+      ? valuesFromPurchase(purchase)
+      : {
+          supplierId: suppliers[0]?.id,
+          purchasedAt: new Date(),
+          discountRs: 0,
+          note: '',
+          items: [],
+        },
   })
 
   const {
@@ -205,13 +241,16 @@ function PurchaseEntryForm({
   }
 
   async function onSubmit(values: ReceivePurchase): Promise<void> {
-    const result = await window.api.purchases.receive(values)
+    const result = purchase
+      ? await window.api.purchases.update({ ...values, id: purchase.id })
+      : await window.api.purchases.receive(values)
     if (!result.ok) {
       if (result.error.field) {
         setError(result.error.field as FieldPath<ReceivePurchase>, {
           type: 'server',
           message: result.error.message,
         })
+        toast.error(result.error.message)
         return
       }
       toast.error(result.error.message)
@@ -225,8 +264,11 @@ function PurchaseEntryForm({
       queryClient.invalidateQueries({ queryKey: labelVariantsQueryKey }),
       queryClient.invalidateQueries({ queryKey: purchaseCatalogQueryKey }),
       queryClient.invalidateQueries({ queryKey: posCatalogQueryKey }),
+      ...(purchase
+        ? [queryClient.invalidateQueries({ queryKey: purchaseQueryKey(purchase.id) })]
+        : []),
     ])
-    toast.success('Purchase received')
+    toast.success(purchase ? 'Purchase updated' : 'Purchase received')
     navigate('/purchases')
   }
 
@@ -367,9 +409,13 @@ function PurchaseEntryForm({
       >
         <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex flex-col gap-1">
-            <h1 className="text-2xl font-semibold tracking-tight">New purchase</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">
+              {editing ? 'Edit purchase' : 'New purchase'}
+            </h1>
             <p className="text-sm text-muted-foreground">
-              Scan or search, Enter to add, then receive to put stock on the shelf.
+              {editing
+                ? 'Change quantities, costs, or lines. Stock and average cost update to match.'
+                : 'Scan or search, Enter to add, then receive to put stock on the shelf.'}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -381,7 +427,7 @@ function PurchaseEntryForm({
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              Receive
+              {editing ? 'Save' : 'Receive'}
               <Kbd>{PURCHASE_HOTKEYS.complete.label}</Kbd>
             </Button>
           </div>
@@ -720,9 +766,29 @@ function PurchaseEntryForm({
 }
 
 export function PurchaseEntryPage(): React.JSX.Element {
+  const params = useParams()
+  const rawId = params.id
+  const purchaseId = rawId === undefined ? null : Number.parseInt(rawId, 10)
+  const editing = purchaseId !== null
+  const validId =
+    purchaseId !== null && Number.isInteger(purchaseId) && purchaseId > 0
+      ? purchaseId
+      : null
   const suppliersQuery = useSuppliersQuery()
   const catalogQuery = usePurchaseCatalogQuery()
-  const isLoading = suppliersQuery.isPending || catalogQuery.isPending
+  const purchaseQuery = usePurchaseQuery(validId)
+  const isLoading =
+    suppliersQuery.isPending ||
+    catalogQuery.isPending ||
+    (editing && purchaseQuery.isPending)
+
+  if (editing && !validId) {
+    return (
+      <div className="flex flex-col gap-3 p-6">
+        <p className="text-sm text-destructive">That purchase could not be found.</p>
+      </div>
+    )
+  }
 
   if (isLoading) {
     return (
@@ -743,10 +809,24 @@ export function PurchaseEntryPage(): React.JSX.Element {
     )
   }
 
+  if (editing && (purchaseQuery.isError || !purchaseQuery.data)) {
+    return (
+      <div className="flex flex-col gap-3 p-6">
+        <p className="text-sm text-destructive">
+          {purchaseQuery.error instanceof Error
+            ? purchaseQuery.error.message
+            : 'Could not load the purchase.'}
+        </p>
+      </div>
+    )
+  }
+
   return (
     <PurchaseEntryForm
+      key={validId ?? 'new'}
       suppliers={suppliersQuery.data ?? []}
       variants={catalogQuery.data ?? EMPTY_VARIANTS}
+      purchase={purchaseQuery.data ?? null}
     />
   )
 }

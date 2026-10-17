@@ -38,6 +38,7 @@ export const IPC = {
     list: 'purchases:list',
     get: 'purchases:get',
     receive: 'purchases:receive',
+    update: 'purchases:update',
     catalog: 'purchases:catalog',
   },
   customers: {

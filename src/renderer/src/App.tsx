@@ -24,6 +24,7 @@ export function App(): React.JSX.Element {
             <Route path="products" element={<ProductsPage />} />
             <Route path="purchases" element={<PurchasesPage />} />
             <Route path="purchases/new" element={<PurchaseEntryPage />} />
+            <Route path="purchases/:id/edit" element={<PurchaseEntryPage />} />
             <Route path="sales" element={<SalesPage />} />
             <Route path="returns" element={<ReturnsPage />} />
             <Route path="returns/new" element={<ReturnEntryPage />} />

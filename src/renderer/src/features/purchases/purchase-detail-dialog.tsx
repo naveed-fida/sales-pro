@@ -1,11 +1,14 @@
 import { format } from 'date-fns'
+import { useNavigate } from 'react-router'
 import { formatRs } from '@shared/money'
 import { formatQuantity } from '@shared/quantity'
 import { variantOptionLabel } from '@shared/variant-label'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
@@ -27,6 +30,7 @@ export function PurchaseDetailDialog({
   purchaseId: number | null
   onOpenChange: (open: boolean) => void
 }): React.JSX.Element {
+  const navigate = useNavigate()
   const purchaseQuery = usePurchaseQuery(purchaseId)
 
   return (
@@ -98,6 +102,18 @@ export function PurchaseDetailDialog({
                 <p className="text-muted-foreground">{purchaseQuery.data.note}</p>
               ) : null}
             </div>
+            <DialogFooter>
+              <Button
+                type="button"
+                onClick={() => {
+                  const id = purchaseQuery.data.id
+                  onOpenChange(false)
+                  navigate(`/purchases/${id}/edit`)
+                }}
+              >
+                Edit
+              </Button>
+            </DialogFooter>
           </div>
         )}
       </DialogContent>

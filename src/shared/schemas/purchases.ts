@@ -41,51 +41,62 @@ export const receivePurchaseItemSchema = z.object({
     .max(10_000_000, 'That discount is too large'),
 })
 
-export const receivePurchaseSchema = z
-  .object({
-    supplierId: z.coerce.number().int().positive('Pick a supplier'),
-    purchasedAt: z.date(),
-    discountRs: z.coerce
-      .number()
-      .int('Whole rupees only')
-      .nonnegative('Cannot be negative')
-      .max(10_000_000, 'That discount is too large'),
-    note: z.string().trim().max(500, 'Note is too long'),
-    items: z.array(receivePurchaseItemSchema).min(1, 'Add at least one item'),
-  })
-  .superRefine((value, context) => {
-    value.items.forEach((item, index) => {
-      if (item.unit === 'piece' && !Number.isInteger(item.quantity)) {
-        context.addIssue({
-          code: 'custom',
-          message: 'Whole pieces only',
-          path: ['items', index, 'quantity'],
-        })
-      }
+const purchaseBodySchema = z.object({
+  supplierId: z.coerce.number().int().positive('Pick a supplier'),
+  purchasedAt: z.date(),
+  discountRs: z.coerce
+    .number()
+    .int('Whole rupees only')
+    .nonnegative('Cannot be negative')
+    .max(10_000_000, 'That discount is too large'),
+  note: z.string().trim().max(500, 'Note is too long'),
+  items: z.array(receivePurchaseItemSchema).min(1, 'Add at least one item'),
+})
 
-      const gross = quantityCostRs(toMilli(item.quantity), item.unitCostRs)
-      if (item.discountRs > gross) {
-        context.addIssue({
-          code: 'custom',
-          message: 'Discount is larger than the line',
-          path: ['items', index, 'discountRs'],
-        })
-      }
-    })
-
-    const subtotal = value.items.reduce(
-      (sum, item) =>
-        sum + lineTotalRs(toMilli(item.quantity), item.unitCostRs, item.discountRs),
-      0,
-    )
-    if (value.discountRs > subtotal) {
+function refinePurchase(
+  value: z.infer<typeof purchaseBodySchema>,
+  context: z.RefinementCtx,
+): void {
+  value.items.forEach((item, index) => {
+    if (item.unit === 'piece' && !Number.isInteger(item.quantity)) {
       context.addIssue({
         code: 'custom',
-        message: 'Discount is larger than the bill',
-        path: ['discountRs'],
+        message: 'Whole pieces only',
+        path: ['items', index, 'quantity'],
+      })
+    }
+
+    const gross = quantityCostRs(toMilli(item.quantity), item.unitCostRs)
+    if (item.discountRs > gross) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Discount is larger than the line',
+        path: ['items', index, 'discountRs'],
       })
     }
   })
+
+  const subtotal = value.items.reduce(
+    (sum, item) =>
+      sum + lineTotalRs(toMilli(item.quantity), item.unitCostRs, item.discountRs),
+    0,
+  )
+  if (value.discountRs > subtotal) {
+    context.addIssue({
+      code: 'custom',
+      message: 'Discount is larger than the bill',
+      path: ['discountRs'],
+    })
+  }
+}
+
+export const receivePurchaseSchema = purchaseBodySchema.superRefine(refinePurchase)
+
+export const updatePurchaseSchema = purchaseBodySchema
+  .extend({
+    id: z.number().int().positive(),
+  })
+  .superRefine(refinePurchase)
 
 export const purchaseItemRecordSchema = z.object({
   id: z.number().int().positive(),
@@ -122,6 +133,8 @@ export type ReceivePurchaseItemInput = z.input<typeof receivePurchaseItemSchema>
 export type ReceivePurchaseItem = z.infer<typeof receivePurchaseItemSchema>
 export type ReceivePurchaseInput = z.input<typeof receivePurchaseSchema>
 export type ReceivePurchase = z.infer<typeof receivePurchaseSchema>
+export type UpdatePurchaseInput = z.input<typeof updatePurchaseSchema>
+export type UpdatePurchase = z.infer<typeof updatePurchaseSchema>
 export type PurchaseItemRecord = z.infer<typeof purchaseItemRecordSchema>
 export type PurchaseListItem = z.infer<typeof purchaseListItemSchema>
 export type PurchaseRecord = z.infer<typeof purchaseRecordSchema>

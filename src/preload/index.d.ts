@@ -17,6 +17,7 @@ import type {
   PurchaseListItem,
   PurchaseRecord,
   ReceivePurchaseInput,
+  UpdatePurchaseInput,
 } from '@shared/schemas/purchases'
 import type { ReportRangeInput, ReportSummary } from '@shared/schemas/reports'
 import type {
@@ -82,6 +83,7 @@ export type Api = {
     list: () => Promise<IpcResult<PurchaseListItem[]>>
     get: (id: number) => Promise<IpcResult<PurchaseRecord>>
     receive: (input: ReceivePurchaseInput) => Promise<IpcResult<PurchaseRecord>>
+    update: (input: UpdatePurchaseInput) => Promise<IpcResult<PurchaseRecord>>
     catalog: () => Promise<IpcResult<PurchaseCatalogVariant[]>>
   }
   customers: {
