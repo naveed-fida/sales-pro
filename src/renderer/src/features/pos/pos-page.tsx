@@ -790,6 +790,7 @@ function PosSale({ variants }: { variants: PosCatalogVariant[] }): React.JSX.Ele
                 <TableRow className="hover:bg-transparent">
                   <TableHead>Item</TableHead>
                   <TableHead>Qty</TableHead>
+                  <TableHead>Stock</TableHead>
                   <TableHead>Price</TableHead>
                   <TableHead>Discount</TableHead>
                   <TableHead className="text-right">Total</TableHead>
@@ -800,7 +801,7 @@ function PosSale({ variants }: { variants: PosCatalogVariant[] }): React.JSX.Ele
                 {items.fields.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={6}
+                      colSpan={7}
                       className="h-24 text-center text-muted-foreground"
                     >
                       Search or scan to add a line.
@@ -831,15 +832,6 @@ function PosSale({ variants }: { variants: PosCatalogVariant[] }): React.JSX.Ele
                         <TableCell>
                           <p>{variantOptionLabel(item)}</p>
                           <p className="text-xs text-muted-foreground">{item.barcode}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {catalogVariant
-                              ? formatQuantity(
-                                  catalogVariant.quantityMilli,
-                                  catalogVariant.unit,
-                                )
-                              : '0'}{' '}
-                            in stock
-                          </p>
                         </TableCell>
                         <TableCell>
                           <Button
@@ -857,6 +849,19 @@ function PosSale({ variants }: { variants: PosCatalogVariant[] }): React.JSX.Ele
                               : formatQuantity(toMilli(quantity), item.unit)}{' '}
                             {UNIT_LABELS[item.unit].toLowerCase()}
                           </Button>
+                        </TableCell>
+                        <TableCell>
+                          {catalogVariant ? (
+                            <>
+                              {formatQuantity(
+                                catalogVariant.quantityMilli,
+                                catalogVariant.unit,
+                              )}{' '}
+                              {UNIT_LABELS[catalogVariant.unit].toLowerCase()}
+                            </>
+                          ) : (
+                            '—'
+                          )}
                         </TableCell>
                         <TableCell>
                           <Button
