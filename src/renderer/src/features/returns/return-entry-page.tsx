@@ -717,9 +717,11 @@ export function ReturnEntryPage(): React.JSX.Element {
                             {formatQuantity(item.returnedMilli, item.unit)}
                           </TableCell>
                           <TableCell>
-                            <button
+                            <Button
                               type="button"
-                              className="text-left"
+                              variant="ghost"
+                              className="-ml-2 h-auto px-2 py-1 font-normal"
+                              aria-label={`Return quantity of ${variantOptionLabel(item)}`}
                               disabled={done}
                               onClick={(event) => {
                                 event.stopPropagation()
@@ -731,7 +733,7 @@ export function ReturnEntryPage(): React.JSX.Element {
                               {quantity > 0
                                 ? formatQuantity(toMilli(quantity), item.unit)
                                 : '—'}
-                            </button>
+                            </Button>
                           </TableCell>
                           <TableCell className="text-right">
                             {quantity > 0 ? formatRs(lineRefundRs(item, quantity)) : '—'}
@@ -787,9 +789,11 @@ export function ReturnEntryPage(): React.JSX.Element {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <button
+                            <Button
                               type="button"
-                              className="text-left"
+                              variant="ghost"
+                              className="-ml-2 h-auto px-2 py-1 font-normal"
+                              aria-label={`Quantity of ${variantOptionLabel(item)}`}
                               onClick={(event) => {
                                 event.stopPropagation()
                                 setZone('exchange')
@@ -798,12 +802,14 @@ export function ReturnEntryPage(): React.JSX.Element {
                               }}
                             >
                               {formatQuantity(toMilli(item.quantity), item.unit)}
-                            </button>
+                            </Button>
                           </TableCell>
                           <TableCell>
-                            <button
+                            <Button
                               type="button"
-                              className="text-left"
+                              variant="ghost"
+                              className="-ml-2 h-auto px-2 py-1 font-normal"
+                              aria-label={`Price of ${variantOptionLabel(item)}`}
                               onClick={(event) => {
                                 event.stopPropagation()
                                 setZone('exchange')
@@ -812,12 +818,14 @@ export function ReturnEntryPage(): React.JSX.Element {
                               }}
                             >
                               {formatRs(item.unitPriceRs)}
-                            </button>
+                            </Button>
                           </TableCell>
                           <TableCell>
-                            <button
+                            <Button
                               type="button"
-                              className="text-left"
+                              variant="ghost"
+                              className="-ml-2 h-auto px-2 py-1 font-normal"
+                              aria-label={`Discount of ${variantOptionLabel(item)}`}
                               onClick={(event) => {
                                 event.stopPropagation()
                                 setZone('exchange')
@@ -828,7 +836,7 @@ export function ReturnEntryPage(): React.JSX.Element {
                               {item.lineDiscountRs > 0
                                 ? formatRs(item.lineDiscountRs)
                                 : '—'}
-                            </button>
+                            </Button>
                           </TableCell>
                           <TableCell className="text-right">
                             {formatRs(exchangeLineTotal(item))}
