@@ -202,6 +202,10 @@ function PosSale({ variants }: { variants: PosCatalogVariant[] }): React.JSX.Ele
     () => variants.filter((variant) => matchesSearch(variant, query)),
     [query, variants],
   )
+  const variantsById = useMemo(
+    () => new Map(variants.map((variant) => [variant.variantId, variant])),
+    [variants],
+  )
   const exact = useMemo(
     () => variants.find((variant) => variant.barcode.toLowerCase() === query),
     [query, variants],
@@ -225,6 +229,9 @@ function PosSale({ variants }: { variants: PosCatalogVariant[] }): React.JSX.Ele
   const tendered = Number(tenderedRs) || 0
   const changeRs = Math.max(0, tendered - totalRs)
   const selected = watchedItems[selectedIndex]
+  const editedItem =
+    lineEdit !== null && 'index' in lineEdit ? watchedItems[lineEdit.index] : undefined
+  const editedVariant = editedItem ? variantsById.get(editedItem.variantId) : undefined
   const editValue =
     lineEdit === null
       ? 0
@@ -233,7 +240,11 @@ function PosSale({ variants }: { variants: PosCatalogVariant[] }): React.JSX.Ele
         : lineEdit.kind === 'tendered'
           ? tendered
           : Number(watchedItems[lineEdit.index]?.[lineEdit.kind]) || 0
-  const editInteger = lineEdit?.kind === 'quantity' ? selected?.unit === 'piece' : true
+  const editInteger = lineEdit?.kind === 'quantity' ? editedItem?.unit === 'piece' : true
+  const editMax =
+    lineEdit?.kind === 'quantity' && editedVariant
+      ? quantityFromMilli(editedVariant.quantityMilli, editedVariant.unit)
+      : undefined
 
   useEffect(() => {
     searchRef.current?.focus()
@@ -276,8 +287,19 @@ function PosSale({ variants }: { variants: PosCatalogVariant[] }): React.JSX.Ele
     const existingIndex = current.findIndex(
       (item) => item.variantId === variant.variantId,
     )
+    const available = quantityFromMilli(variant.quantityMilli, variant.unit)
+    if (available <= 0) {
+      toast.error('Item is out of stock')
+      return
+    }
     if (existingIndex >= 0) {
       const currentQty = Number(current[existingIndex]?.quantity ?? 0)
+      if (toMilli(currentQty + 1) > variant.quantityMilli) {
+        toast.error(
+          `Only ${formatQuantity(variant.quantityMilli, variant.unit)} in stock`,
+        )
+        return
+      }
       setValue(`items.${existingIndex}.quantity`, currentQty + 1, {
         shouldDirty: true,
         shouldValidate: true,
@@ -291,7 +313,7 @@ function PosSale({ variants }: { variants: PosCatalogVariant[] }): React.JSX.Ele
         size: variant.size,
         colour: variant.colour,
         unit: variant.unit,
-        quantity: 1,
+        quantity: Math.min(1, available),
         unitPriceRs: variant.salePriceRs,
         lineDiscountRs: 0,
       })
@@ -328,7 +350,15 @@ function PosSale({ variants }: { variants: PosCatalogVariant[] }): React.JSX.Ele
   function bumpPiece(delta: number): void {
     const item = watchedItems[selectedIndex]
     if (!item || item.unit !== 'piece') return
-    const next = Math.max(1, (Number(item.quantity) || 1) + delta)
+    const variant = variantsById.get(item.variantId)
+    if (!variant) return
+    const current = Number(item.quantity) || 1
+    const available = quantityFromMilli(variant.quantityMilli, variant.unit)
+    if (delta > 0 && current >= available) {
+      toast.error(`Only ${formatQuantity(variant.quantityMilli, variant.unit)} in stock`)
+      return
+    }
+    const next = Math.max(1, Math.min(available, current + delta))
     setValue(`items.${selectedIndex}.quantity`, next, {
       shouldDirty: true,
       shouldValidate: true,
@@ -780,6 +810,7 @@ function PosSale({ variants }: { variants: PosCatalogVariant[] }): React.JSX.Ele
                   items.fields.map((field, index) => {
                     const item = watchedItems[index]
                     if (!item) return null
+                    const catalogVariant = variantsById.get(item.variantId)
                     const quantity = Number(item.quantity) || 0
                     const unitPriceRs = Number(item.unitPriceRs) || 0
                     const lineDiscount = Number(item.lineDiscountRs) || 0
@@ -800,6 +831,15 @@ function PosSale({ variants }: { variants: PosCatalogVariant[] }): React.JSX.Ele
                         <TableCell>
                           <p>{variantOptionLabel(item)}</p>
                           <p className="text-xs text-muted-foreground">{item.barcode}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {catalogVariant
+                              ? formatQuantity(
+                                  catalogVariant.quantityMilli,
+                                  catalogVariant.unit,
+                                )
+                              : '0'}{' '}
+                            in stock
+                          </p>
                         </TableCell>
                         <TableCell>
                           <Button
@@ -1084,6 +1124,7 @@ function PosSale({ variants }: { variants: PosCatalogVariant[] }): React.JSX.Ele
         value={editValue}
         kind={lineEdit?.kind === 'quantity' ? 'quantity' : 'money'}
         integer={editInteger}
+        max={editMax}
         onOpenChange={(open) => {
           if (!open) setLineEdit(null)
         }}
